@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WaveConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_config.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/missiles/basic_enemy.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+wave_number = 3
+missile_count = 20
+spawn_interval = 0.6
+missile_data = ExtResource("2")
+speed_multiplier = 1.2
+special_modifiers = []
+targeting_strategy = "random"
+

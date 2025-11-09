@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MissileModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+modifier_name = "Extra Ammo"
+description = "+3 ammo capacity\nMore shots before reloading"
+category = "Stat"
+speed_multiplier = 1.0
+radius_multiplier = 1.0
+ammo_addition = 3
+behavior_flag = ""
+behavior_params = "{}"
+
