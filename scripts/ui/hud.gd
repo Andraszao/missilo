@@ -1,14 +1,11 @@
 extends Control
 # HUD: Heads-up display for game state and player feedback
 #
-# Displays:
-# - Current wave number
-# - Score
-# - Ammo for each silo
-# - Cities remaining
-# - Game over / wave clear messages
+# Displays wave, score, ammo per silo, cities remaining, and status messages.
+# Reactive architecture — updates via signals, no polling.
 #
-# Updates via signals - no polling, clean reactive architecture
+# Ammo tracking sources from EventBus.silo_ammo_changed so it always
+# reflects actual silo state, including modifier-boosted max ammo.
 
 # ============================================================================
 # NODES
@@ -24,53 +21,47 @@ extends Control
 # STATE
 # ============================================================================
 
-var silo_ammo: Array[int] = [10, 10, 10]  # Track each silo's ammo
+# Indexed by silo_index. -1 = destroyed, ≥0 = current ammo count.
+# Sourced from EventBus.silo_ammo_changed so modifier boosts are reflected.
+var silo_ammo: Array[int] = [10, 10, 10]
 
 # ============================================================================
 # LIFECYCLE
 # ============================================================================
 
 func _ready() -> void:
-	# Connect to GameManager signals
 	GameManager.game_started.connect(_on_game_started)
 	GameManager.wave_started.connect(_on_wave_started)
 	GameManager.wave_cleared.connect(_on_wave_cleared)
 	GameManager.game_over.connect(_on_game_over)
 	GameManager.score_changed.connect(_on_score_changed)
-	
-	# Connect to EventBus signals
-	EventBus.silo_fired.connect(_on_silo_fired)
+
+	EventBus.silo_ammo_changed.connect(_on_silo_ammo_changed)
 	EventBus.silo_destroyed.connect(_on_silo_destroyed)
 	EventBus.city_destroyed.connect(_on_city_destroyed)
-	
-	# Initial display
+
 	_update_display()
 
 # ============================================================================
-# DISPLAY UPDATES
+# DISPLAY
 # ============================================================================
 
 func _update_display() -> void:
-	"""Refresh all HUD elements"""
 	wave_label.text = "Wave: %d" % GameManager.current_wave
 	score_label.text = "Score: %d" % GameManager.score
 	cities_label.text = "Cities: %d" % GameManager.cities_alive
-	
-	# Ammo display: show all three silos
-	var ammo_text = "Ammo: "
+
+	var ammo_text: String = "Ammo: "
 	for i in range(3):
-		if silo_ammo[i] < 0:  # Destroyed
+		if silo_ammo[i] < 0:
 			ammo_text += "[X] "
 		else:
 			ammo_text += "[%d] " % silo_ammo[i]
 	ammo_label.text = ammo_text
 
 func show_status_message(message: String, duration: float = 2.0) -> void:
-	"""Display temporary status message"""
 	status_label.text = message
 	status_label.visible = true
-	
-	# Hide after duration
 	await get_tree().create_timer(duration).timeout
 	status_label.visible = false
 
@@ -79,50 +70,37 @@ func show_status_message(message: String, duration: float = 2.0) -> void:
 # ============================================================================
 
 func _on_game_started() -> void:
-	"""Game starting - reset display"""
 	silo_ammo = [10, 10, 10]
 	status_label.visible = false
 	_update_display()
 
 func _on_wave_started(wave_number: int) -> void:
-	"""New wave starting"""
 	_update_display()
-	show_status_message("Wave %d - Incoming!" % wave_number, 1.5)
+	show_status_message("Wave %d — Incoming!" % wave_number, 1.5)
 
 func _on_wave_cleared(wave_number: int) -> void:
-	"""Wave completed - reload active silos"""
-	# Reset ammo for silos that aren't destroyed
-	for i in range(silo_ammo.size()):
-		if silo_ammo[i] >= 0:  # Not destroyed
-			silo_ammo[i] = 10  # Full reload
-	
+	# silo_ammo array is already up to date from silo_ammo_changed signals
 	_update_display()
 	show_status_message("Wave %d Clear!" % wave_number, 2.0)
 
 func _on_game_over(final_score: int, did_win: bool) -> void:
-	"""Game ended"""
 	if did_win:
 		show_status_message("VICTORY! Final Score: %d" % final_score, 999.0)
 	else:
-		show_status_message("GAME OVER - Final Score: %d" % final_score, 999.0)
+		show_status_message("GAME OVER — Final Score: %d" % final_score, 999.0)
 
-func _on_score_changed(new_score: int) -> void:
-	"""Score updated"""
+func _on_score_changed(_new_score: int) -> void:
 	_update_display()
 
-func _on_silo_fired(silo_index: int, target_position: Vector3) -> void:
-	"""Silo fired - decrement ammo (if not destroyed)"""
+func _on_silo_ammo_changed(silo_index: int, new_ammo: int) -> void:
 	if silo_index >= 0 and silo_index < silo_ammo.size():
-		if silo_ammo[silo_index] > 0:  # Only decrement if not destroyed
-			silo_ammo[silo_index] -= 1
-			_update_display()
-
-func _on_silo_destroyed(silo_index: int) -> void:
-	"""Silo destroyed"""
-	if silo_index >= 0 and silo_index < silo_ammo.size():
-		silo_ammo[silo_index] = -1  # Mark as destroyed
+		silo_ammo[silo_index] = new_ammo
 		_update_display()
 
-func _on_city_destroyed(city_index: int) -> void:
-	"""City destroyed"""
+func _on_silo_destroyed(silo_index: int) -> void:
+	if silo_index >= 0 and silo_index < silo_ammo.size():
+		silo_ammo[silo_index] = -1
+		_update_display()
+
+func _on_city_destroyed(_city_index: int) -> void:
 	_update_display()

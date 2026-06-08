@@ -3,9 +3,7 @@ extends CharacterBody3D
 #
 # Flies from top of screen toward ground targets.
 # Can be destroyed by player explosions.
-# Awards points when destroyed, damages cities/silos on impact.
-#
-# Uses CharacterBody3D for physics movement.
+# Awards points when destroyed; damages cities/silos on impact.
 
 # ============================================================================
 # STATE
@@ -17,14 +15,20 @@ var target_position: Vector3 = Vector3.ZERO
 var move_velocity: Vector3 = Vector3.ZERO
 var speed: float = 3.0
 var is_active: bool = false
-var hit_by_generation: int = 0  # Track what generation of explosion hit this missile
+
+# Generation of the explosion that hit this missile (drives chain reaction sizing)
+var hit_by_generation: int = 0
+
+# Max radius of the explosion that killed us — used to scale chain reactions
+# so the blast_radius modifier propagates through chains
+var _parent_explosion_radius: float = 6.0
 
 # ============================================================================
 # NODES
 # ============================================================================
 
 @onready var mesh: MeshInstance3D = $Mesh
-@onready var trail: Line2D = $Trail  # Simple trail effect
+@onready var trail: Line2D = $Trail
 @onready var hitbox: Area3D = $Hitbox
 
 # ============================================================================
@@ -33,145 +37,135 @@ var hit_by_generation: int = 0  # Track what generation of explosion hit this mi
 
 func _ready() -> void:
 	add_to_group("incoming_missile")
-	
-	# CRITICAL: Add hitbox to group too since that's what explosions detect
 	if hitbox:
 		hitbox.add_to_group("incoming_missile")
 		hitbox.area_entered.connect(_on_hitbox_area_entered)
 
 func initialize(data: MissileData, start: Vector3, target: Vector3, speed_mult: float = 1.0) -> void:
-	"""
-	Setup missile for a new flight from start to target.
-	Called by ProjectileManager when spawning from pool.
-	"""
 	missile_data = data
 	start_position = start
 	target_position = target
 	global_position = start
 	is_active = true
-	
-	# Calculate speed with multiplier
+	hit_by_generation = 0
+	_parent_explosion_radius = 6.0  # Reset to base player explosion radius
+
 	speed = data.speed * speed_mult
-	
-	# Calculate velocity vector
-	var direction = (target_position - start_position).normalized()
+
+	var direction: Vector3 = (target_position - start_position).normalized()
 	move_velocity = direction * speed
-	
-	# Point mesh toward target (downward)
-	# Calculate angle and rotate to point down at target
+
 	if direction.length() > 0.01:
-		var angle = atan2(direction.x, direction.y)
+		var angle: float = atan2(direction.x, direction.y)
 		rotation.z = -angle
-	
-	# Ensure hitbox is active (deferred to avoid physics query conflicts)
+
 	if hitbox:
 		call_deferred("_enable_hitbox")
-	
-	# Apply mesh color from data
+
 	var material = mesh.get_surface_override_material(0)
 	if material:
 		material.albedo_color = data.mesh_color
 
+# ============================================================================
+# MOVEMENT
+# ============================================================================
+
 func _physics_process(delta: float) -> void:
-	"""
-	Move toward target and check for arrival
-	"""
 	if not is_active:
 		return
-	
-	# Move missile
+
 	velocity = move_velocity
 	move_and_slide()
-	
-	# Check if reached target
-	if global_position.distance_to(target_position) < 0.5:  # Close enough
+
+	if global_position.distance_to(target_position) < 0.5:
 		impact()
 
+# ============================================================================
+# IMPACT & DESTRUCTION
+# ============================================================================
+
 func impact() -> void:
-	"""
-	Reached target without being destroyed - damage target
-	"""
 	if not is_active:
 		return
-	
+
 	is_active = false
-	
-	# Signal impact (cities/silos listen for this)
 	EventBus.incoming_missile_impacted.emit(global_position)
-	
-	# Return to pool (main game) or queue free (sandbox)
-	var projectile_manager = get_node_or_null("/root/Main/ProjectileManager")
-	if projectile_manager:
-		projectile_manager.return_to_pool(self)
+
+	var pm: Node = get_node_or_null("/root/Main/ProjectileManager")
+	if pm:
+		pm.return_to_pool(self)
 	else:
 		queue_free()
-
-func set_hit_by_generation(generation: int) -> void:
-	"""Track what generation of explosion hit this missile"""
-	hit_by_generation = generation
 
 func destroy() -> void:
-	"""
-	Destroyed by player explosion - award points and create chain reaction!
-	"""
 	if not is_active:
 		return
-	
+
 	is_active = false
-	
-	# Award points (if in main game)
+
 	if missile_data:
 		EventBus.enemy_destroyed.emit(global_position, missile_data.points_value)
-	
-	# Spawn chain reaction explosion
-	var projectile_manager = get_node_or_null("/root/Main/ProjectileManager")
-	if projectile_manager:
-		# Main game - use pooling
-		var death_explosion = projectile_manager.spawn_explosion(global_position)
-		
-		if death_explosion:
-			# Calculate radius based on what hit us
-			var next_generation = hit_by_generation + 1
-			var chain_radius: float
-			
-			match next_generation:
-				1: chain_radius = 2.5  # Hit by player
-				2: chain_radius = 1.5  # Hit by first chain
-				3: chain_radius = 1.0  # Hit by second chain
-				_: chain_radius = 0.8  # Hit by third+ chain
-			
-			if death_explosion.has_method("set_explosion_radius"):
-				death_explosion.set_explosion_radius(chain_radius)
-			if death_explosion.has_method("set_chain_generation"):
-				death_explosion.set_chain_generation(next_generation)
-		
-		# Return to pool
-		projectile_manager.return_to_pool(self)
+
+	var pm: Node = get_node_or_null("/root/Main/ProjectileManager")
+	if pm:
+		var chain_explosion: Node = pm.spawn_explosion(global_position)
+		if chain_explosion:
+			_configure_chain_explosion(chain_explosion)
+		pm.return_to_pool(self)
 	else:
-		# Sandbox mode - create explosion manually then queue free
-		var explosion_scene = load("res://scenes/entities/explosion.tscn")
-		var explosion = explosion_scene.instantiate()
-		get_parent().add_child(explosion)
-		explosion.initialize(global_position)
-		explosion.set_explosion_radius(2.5)  # Chain reaction size
-		explosion.visible = true
-		explosion.set_process(true)
-		queue_free()
+		_spawn_sandbox_explosion()
+
+func set_hit_by_generation(generation: int) -> void:
+	hit_by_generation = generation
+
+# ============================================================================
+# CHAIN EXPLOSION CONFIGURATION
+# ============================================================================
+
+func _configure_chain_explosion(explosion: Node) -> void:
+	var next_gen: int = hit_by_generation + 1
+
+	# Base chain radii, scaled by the parent explosion's blast radius.
+	# This ensures the blast_radius upgrade propagates through chain reactions.
+	var base_radius: float = _get_base_chain_radius(next_gen)
+	var scale: float = _parent_explosion_radius / 6.0  # 6.0 = default player explosion radius
+	var chain_radius: float = base_radius * scale
+
+	if explosion.has_method("set_explosion_radius"):
+		explosion.set_explosion_radius(chain_radius)
+	if explosion.has_method("set_chain_generation"):
+		explosion.set_chain_generation(next_gen)
+
+func _get_base_chain_radius(generation: int) -> float:
+	match generation:
+		1: return 2.5
+		2: return 1.5
+		3: return 1.0
+		_: return 0.8
+
+func _spawn_sandbox_explosion() -> void:
+	var explosion_scene = load("res://scenes/entities/explosion.tscn")
+	var explosion = explosion_scene.instantiate()
+	get_parent().add_child(explosion)
+	explosion.initialize(global_position)
+	explosion.set_explosion_radius(2.5)
+	explosion.visible = true
+	explosion.set_process(true)
+	queue_free()
 
 # ============================================================================
 # COLLISION DETECTION
 # ============================================================================
 
 func _enable_hitbox() -> void:
-	"""Enable hitbox monitoring (called deferred)"""
 	if hitbox:
 		hitbox.monitoring = true
 		hitbox.monitorable = true
 
 func _on_hitbox_area_entered(area: Area3D) -> void:
-	"""
-	Detect collision with player explosions.
-	Explosions have Area3D hitboxes that grow with their radius.
-	"""
 	if area.is_in_group("explosion"):
+		# Inherit the parent explosion's radius so chain reactions scale with upgrades
+		var explosion_node = area.get_parent()
+		if explosion_node and "max_radius" in explosion_node:
+			_parent_explosion_radius = explosion_node.max_radius
 		destroy()

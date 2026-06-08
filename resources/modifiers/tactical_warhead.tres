@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MissileModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+modifier_name = "Tactical Warhead"
+description = "+30% speed, +30% radius\nA well-rounded upgrade"
+category = "Stat"
+speed_multiplier = 1.3
+radius_multiplier = 1.3
+ammo_addition = 0
+behavior_flag = ""
+behavior_params = "{}"
