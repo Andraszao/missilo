@@ -24,7 +24,7 @@ extends Control
 # STATE
 # ============================================================================
 
-var silo_ammo: Array[int] = [10, 10, 10]  # Track each silo's ammo
+var silo_ammo: Array[int] = [7, 7, 7]  # Track each silo's ammo
 
 # ============================================================================
 # LIFECYCLE
@@ -80,7 +80,7 @@ func show_status_message(message: String, duration: float = 2.0) -> void:
 
 func _on_game_started() -> void:
 	"""Game starting - reset display"""
-	silo_ammo = [10, 10, 10]
+	silo_ammo = [7, 7, 7]
 	status_label.visible = false
 	_update_display()
 
@@ -94,7 +94,7 @@ func _on_wave_cleared(wave_number: int) -> void:
 	# Reset ammo for silos that aren't destroyed
 	for i in range(silo_ammo.size()):
 		if silo_ammo[i] >= 0:  # Not destroyed
-			silo_ammo[i] = 10  # Full reload
+			silo_ammo[i] = 7  # Full reload
 	
 	_update_display()
 	show_status_message("Wave %d Clear!" % wave_number, 2.0)

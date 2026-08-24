@@ -17,10 +17,13 @@ extends Node3D
 @export var silo_index: int = 0
 
 # Maximum ammunition capacity
-@export var max_ammo: int = 10
+@export var max_ammo: int = 7
 
 # Starting ammunition
-@export var start_ammo: int = 10
+@export var start_ammo: int = 7
+
+# Seconds between allowed shots (Speed Boost reduces this)
+const BASE_FIRE_COOLDOWN: float = 0.25
 
 # ============================================================================
 # STATE
@@ -29,6 +32,7 @@ extends Node3D
 var current_ammo: int = 0
 var is_active: bool = true
 var is_selected: bool = false
+var _last_fire_sec: float = -9999.0  # allows immediate first shot
 
 # ============================================================================
 # NODES
@@ -75,22 +79,26 @@ func fire(target: Vector3) -> bool:
 	"""
 	if not is_active:
 		return false
-	
 	if current_ammo <= 0:
 		return false
-	
-	# Calculate stats with modifiers applied
-	var stats = calculate_stats()
-	
-	# Get ProjectileManager and spawn player missile with stats
-	var projectile_manager = get_node("/root/Main/ProjectileManager")
-	var start_pos = launch_point.global_position
-	projectile_manager.spawn_player_missile(start_pos, target, stats)
-	
-	# Decrement ammo
+
+	var stats := calculate_stats()
+
+	# Cooldown enforced here so Speed/Rapid upgrades reduce time-between-shots
+	var now := Time.get_ticks_msec() / 1000.0
+	var cooldown := BASE_FIRE_COOLDOWN / stats.get("speed_multiplier", 1.0)
+	if now - _last_fire_sec < cooldown:
+		return false
+	_last_fire_sec = now
+
+	var projectile_manager = get_node_or_null("/root/Main/ProjectileManager")
+	if projectile_manager == null:
+		push_error("Silo %d: ProjectileManager not found" % silo_index)
+		return false
+	projectile_manager.spawn_player_missile(launch_point.global_position, target, stats)
+
 	current_ammo -= 1
 	_update_visuals()
-	
 	return true
 
 func reload(amount: int = -1) -> void:
@@ -216,25 +224,22 @@ func calculate_stats() -> Dictionary:
 	# Start with base stats
 	var stats = {
 		"speed": 15.0,
+		"speed_multiplier": 1.0,  # tracked so fire() can compute cooldown
 		"explosion_radius": 6.0,
-		"max_ammo": max_ammo,
-		"behaviors": []  # Array of behavior flags
+		"behaviors": []
 	}
-	
+
 	# Apply each modifier
 	for mod in equipped_modifiers:
-		# Apply stat multipliers
 		stats.speed *= mod.speed_multiplier
+		stats.speed_multiplier *= mod.speed_multiplier
 		stats.explosion_radius *= mod.radius_multiplier
-		
-		# Apply additive stats
-		stats.max_ammo += mod.ammo_addition
-		
-		# Add behaviors
+		# ammo_addition already applied in add_modifier(); skip here to avoid double-count
+
 		if mod.behavior_flag != "":
 			stats.behaviors.append({
 				"flag": mod.behavior_flag,
 				"params": mod.behavior_params
 			})
-	
+
 	return stats
