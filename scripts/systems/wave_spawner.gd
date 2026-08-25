@@ -33,6 +33,7 @@ var is_spawning: bool = false
 
 var _fast_scout_data: MissileData = preload("res://resources/missiles/fast_scout.tres")
 var _cluster_data: MissileData = preload("res://resources/missiles/cluster_missile.tres")
+var _decoy_data: MissileData = null
 
 # ============================================================================
 # NODES
@@ -51,6 +52,16 @@ func _ready() -> void:
 	spawn_timer.one_shot = false
 	spawn_timer.timeout.connect(_on_spawn_timer_timeout)
 	add_child(spawn_timer)
+
+	# Load decoy data (with inline fallback if resource not found)
+	_decoy_data = load("res://resources/missiles/decoy.tres")
+	if _decoy_data == null:
+		_decoy_data = MissileData.new()
+		_decoy_data.speed = 3.0
+		_decoy_data.points_value = 30
+		_decoy_data.mesh_color = Color(0.5, 0.5, 1.0, 1.0)
+		_decoy_data.special_behavior = "decoy"
+		_decoy_data.health = 1
 
 	# Listen for game events
 	GameManager.wave_started.connect(_on_wave_started)
@@ -96,6 +107,19 @@ func start_wave(wave_number: int) -> void:
 
 func _pick_missile_data(wave: int) -> MissileData:
 	"""Roll for enemy type based on current wave number"""
+	# First check if this spawn is a decoy (wave 6+)
+	var decoy_roll = randf()
+	var decoy_chance = 0.0
+	if wave >= 10:
+		decoy_chance = 0.15
+	elif wave >= 8:
+		decoy_chance = 0.10
+	elif wave >= 6:
+		decoy_chance = 0.05
+	if decoy_roll < decoy_chance:
+		return _decoy_data
+
+	# Roll for remaining enemy types using existing wave brackets
 	var roll = randf()
 	if wave >= 9:
 		if roll < 0.20: return _cluster_data

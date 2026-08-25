@@ -126,6 +126,8 @@ func destroy() -> void:
 	# Cluster missiles spawn child missiles targeting nearby cities on death
 	if missile_data != null and missile_data.special_behavior == "cluster":
 		_spawn_cluster_children()
+	elif missile_data != null and missile_data.special_behavior == "decoy":
+		_spawn_decoy_children()
 
 	# Spawn chain reaction explosion
 	var projectile_manager = get_node_or_null("/root/Main/ProjectileManager")
@@ -189,6 +191,34 @@ func _spawn_cluster_children() -> void:
 	var child_data = load("res://resources/missiles/basic_enemy.tres")
 	for city in targets:
 		spawner.spawn_incoming_missile(global_position, city.global_position, child_data)
+
+# ============================================================================
+# DECOY BEHAVIOR
+# ============================================================================
+
+func _spawn_decoy_children() -> void:
+	"""
+	Spawn 2 fast child missiles targeting random cities when a decoy dies.
+	Called from destroy() when special_behavior == "decoy".
+	Children award no points.
+	"""
+	var pm = get_node_or_null("/root/Main/ProjectileManager")
+	if not pm:
+		return
+	var cities = get_tree().get_nodes_in_group("city")
+	if cities.is_empty():
+		return
+	var live_cities = cities.filter(func(c): return is_instance_valid(c) and c.visible)
+	live_cities.shuffle()
+	for i in range(min(2, live_cities.size())):
+		var child_data = MissileData.new()
+		child_data.speed = 5.0
+		child_data.points_value = 0
+		child_data.mesh_color = Color(1.0, 0.5, 0.1, 1.0)
+		child_data.trail_color = Color(1.0, 0.3, 0.0, 1.0)
+		child_data.special_behavior = ""
+		child_data.health = 1
+		pm.spawn_incoming_missile(child_data, global_position, live_cities[i].global_position, 1.0)
 
 # ============================================================================
 # COLLISION DETECTION
