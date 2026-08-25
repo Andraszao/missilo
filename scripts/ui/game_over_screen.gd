@@ -1,0 +1,58 @@
+class_name GameOverScreen extends CanvasLayer
+
+var _title_lbl: Label
+var _score_lbl: Label
+var _wave_lbl: Label
+
+func _ready() -> void:
+	layer = 21
+	visible = false
+	_build_ui()
+	GameManager.game_over.connect(_on_game_over)
+	GameManager.game_started.connect(func(): visible = false)
+
+func _build_ui() -> void:
+	var overlay = ColorRect.new()
+	overlay.color = Color(0.0, 0.0, 0.0, 0.82)
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(overlay)
+
+	var center = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(center)
+
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 20)
+	center.add_child(vbox)
+
+	_title_lbl = Label.new()
+	_title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_lbl.add_theme_font_size_override("font_size", 52)
+	vbox.add_child(_title_lbl)
+
+	_score_lbl = Label.new()
+	_score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_lbl.add_theme_font_size_override("font_size", 28)
+	vbox.add_child(_score_lbl)
+
+	_wave_lbl = Label.new()
+	_wave_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wave_lbl.add_theme_font_size_override("font_size", 22)
+	vbox.add_child(_wave_lbl)
+
+	var spacer = Control.new()
+	spacer.custom_minimum_size = Vector2(0, 24)
+	vbox.add_child(spacer)
+
+	var retry_btn = Button.new()
+	retry_btn.text = "PLAY AGAIN"
+	retry_btn.custom_minimum_size = Vector2(200, 52)
+	retry_btn.pressed.connect(func(): visible = false; GameManager.start_game())
+	vbox.add_child(retry_btn)
+
+func _on_game_over(final_score: int, did_win: bool) -> void:
+	_title_lbl.text = "VICTORY!" if did_win else "GAME OVER"
+	_score_lbl.text = "Score: %d" % final_score
+	_wave_lbl.text = "Wave reached: %d" % GameManager.current_wave
+	visible = true

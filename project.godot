@@ -21,6 +21,8 @@ EventBus="*res://scripts/autoloads/event_bus.gd"
 GameManager="*res://scripts/autoloads/game_manager.gd"
 UpgradeManager="*res://scripts/systems/upgrade_manager.gd"
 AudioManager="*res://scripts/systems/audio_manager.gd"
+MainMenu="*res://scripts/ui/main_menu.gd"
+GameOverScreen="*res://scripts/ui/game_over_screen.gd"
 
 [input]
 
