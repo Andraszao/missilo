@@ -18,6 +18,7 @@ func _ready() -> void:
 	GameManager.upgrade_available.connect(_on_upgrade_available)
 
 func _load_modifier_pool() -> void:
+	var unlocked = ProgressionManager.get_unlocked_stems()
 	var dir = DirAccess.open("res://resources/modifiers/")
 	if dir == null:
 		return
@@ -25,9 +26,11 @@ func _load_modifier_pool() -> void:
 	var fname = dir.get_next()
 	while fname != "":
 		if fname.ends_with(".tres"):
-			var mod = load("res://resources/modifiers/" + fname) as MissileModifier
-			if mod:
-				_modifier_pool.append(mod)
+			var stem = fname.get_basename()
+			if stem in unlocked:
+				var mod = load("res://resources/modifiers/" + fname) as MissileModifier
+				if mod:
+					_modifier_pool.append(mod)
 		fname = dir.get_next()
 
 func _on_upgrade_available(wave_number: int) -> void:
