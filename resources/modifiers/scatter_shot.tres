@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MissileModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+modifier_name = "Scatter Shot"
+description = "+2 ammo, +15% radius\nVolume over precision"
+category = "Stat"
+speed_multiplier = 1.0
+radius_multiplier = 1.15
+ammo_addition = 2
+behavior_flag = ""
+behavior_params = "{}"

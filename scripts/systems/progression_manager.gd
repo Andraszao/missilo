@@ -11,6 +11,11 @@ const UNLOCK_TABLE = {
 	"mega_blast": {"wave": 7, "wins": 0},
 	"rapid_shot": {"wave": 0, "wins": 1},
 	"veteran_loader": {"wave": 0, "wins": 3},
+	"chain_reaction": {"wave": 4, "wins": 0},
+	"scatter_shot": {"wave": 3, "wins": 0},
+	"precision_strike": {"wave": 6, "wins": 0},
+	"iron_reserve": {"wave": 5, "wins": 0},
+	"overcharge": {"wave": 8, "wins": 1},
 }
 
 var _best_wave: int = 0
