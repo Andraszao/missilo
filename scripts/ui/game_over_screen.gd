@@ -3,6 +3,7 @@ class_name GameOverScreen extends CanvasLayer
 var _title_lbl: Label
 var _score_lbl: Label
 var _wave_lbl: Label
+var _history_box: VBoxContainer
 
 func _ready() -> void:
 	layer = 21
@@ -51,8 +52,42 @@ func _build_ui() -> void:
 	retry_btn.pressed.connect(func(): visible = false; GameManager.start_game())
 	vbox.add_child(retry_btn)
 
+	_history_box = VBoxContainer.new()
+	_history_box.add_theme_constant_override("separation", 4)
+	_history_box.visible = false
+	vbox.add_child(_history_box)
+
 func _on_game_over(final_score: int, did_win: bool) -> void:
 	_title_lbl.text = "VICTORY!" if did_win else "GAME OVER"
 	_score_lbl.text = "Score: %d" % final_score
 	_wave_lbl.text = "Wave reached: %d" % GameManager.current_wave
+	_populate_history()
 	visible = true
+
+func _populate_history() -> void:
+	for child in _history_box.get_children():
+		child.queue_free()
+
+	var history: Array = ProgressionManager.get_run_history()
+	if history.is_empty():
+		_history_box.visible = false
+		return
+
+	var heading = Label.new()
+	heading.text = "RECENT RUNS"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 14)
+	heading.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	_history_box.add_child(heading)
+
+	var reversed_history: Array = history.duplicate()
+	reversed_history.reverse()
+	for run in reversed_history:
+		var lbl = Label.new()
+		lbl.text = "Wave %d  —  %d pts" % [run.wave, run.score]
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		_history_box.add_child(lbl)
+
+	_history_box.visible = true
