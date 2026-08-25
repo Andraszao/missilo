@@ -7,6 +7,7 @@ extends Control
 # - Ammo for each silo
 # - Cities remaining
 # - Game over / wave clear messages
+# - Kill-streak combo multiplier
 #
 # Updates via signals - no polling, clean reactive architecture
 
@@ -25,12 +26,33 @@ extends Control
 # ============================================================================
 
 var silo_ammo: Array[int] = [7, 7, 7]  # Track each silo's ammo
+var _combo_mult: int = 1
+
+# Created programmatically — no scene dependency
+var _combo_label: Label
 
 # ============================================================================
 # LIFECYCLE
 # ============================================================================
 
 func _ready() -> void:
+	# Create combo label positioned at center-top of the screen
+	_combo_label = Label.new()
+	_combo_label.add_theme_font_size_override("font_size", 22)
+	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0))
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_combo_label.anchors_preset = Control.PRESET_CENTER_TOP
+	_combo_label.anchor_left = 0.5
+	_combo_label.anchor_right = 0.5
+	_combo_label.anchor_top = 0.0
+	_combo_label.anchor_bottom = 0.0
+	_combo_label.offset_left = -150.0
+	_combo_label.offset_right = 150.0
+	_combo_label.offset_top = 12.0
+	_combo_label.offset_bottom = 50.0
+	_combo_label.visible = false
+	add_child(_combo_label)
+
 	# Connect to GameManager signals
 	GameManager.game_started.connect(_on_game_started)
 	GameManager.wave_started.connect(_on_wave_started)
@@ -42,6 +64,7 @@ func _ready() -> void:
 	EventBus.silo_ammo_changed.connect(_on_silo_ammo_changed)
 	EventBus.silo_destroyed.connect(_on_silo_destroyed)
 	EventBus.city_destroyed.connect(_on_city_destroyed)
+	EventBus.combo_changed.connect(_on_combo_changed)
 	
 	# Initial display
 	_update_display()
@@ -64,6 +87,13 @@ func _update_display() -> void:
 		else:
 			ammo_text += "[%d] " % silo_ammo[i]
 	ammo_label.text = ammo_text
+
+	# Combo display
+	if _combo_mult > 1:
+		_combo_label.text = "x%d COMBO" % _combo_mult
+		_combo_label.visible = true
+	else:
+		_combo_label.visible = false
 
 func show_status_message(message: String, duration: float = 2.0) -> void:
 	"""Display temporary status message"""
@@ -124,4 +154,9 @@ func _on_silo_destroyed(silo_index: int) -> void:
 
 func _on_city_destroyed(city_index: int) -> void:
 	"""City destroyed"""
+	_update_display()
+
+func _on_combo_changed(mult: int) -> void:
+	"""Kill-streak combo multiplier updated"""
+	_combo_mult = mult
 	_update_display()

@@ -5,8 +5,8 @@ extends Node
 # This is the single source of truth for "what's happening right now."
 #
 # State Flow:
-# READY → (start_game) → PLAYING → (wave clears) → WAVE_CLEAR → (next wave) → PLAYING
-#                                → (all cities/silos dead) → GAME_OVER
+# READY -> (start_game) -> PLAYING -> (wave clears) -> WAVE_CLEAR -> (next wave) -> PLAYING
+#                                -> (all cities/silos dead) -> GAME_OVER
 #
 # Listen to signals to react to state changes without polling.
 
@@ -33,6 +33,14 @@ var cities_alive: int = 6  # Starts at 6, decrements when cities die
 var silos_active: int = 3  # Starts at 3, decrements when silos die
 
 # ============================================================================
+# COMBO TRACKING
+# ============================================================================
+
+var _combo_count: int = 0
+var _combo_timer: float = 0.0
+const COMBO_WINDOW: float = 1.2
+
+# ============================================================================
 # CONFIGURATION
 # ============================================================================
 
@@ -44,7 +52,7 @@ const MAX_WAVES: int = 10  # Win condition: complete wave 10
 # SIGNALS
 # ============================================================================
 
-# Fired when game transitions from READY → PLAYING
+# Fired when game transitions from READY -> PLAYING
 signal game_started
 
 # Fired when a new wave begins
@@ -77,6 +85,16 @@ func _ready() -> void:
 	EventBus.silo_destroyed.connect(_on_silo_destroyed)
 	EventBus.enemy_destroyed.connect(_on_enemy_destroyed)
 	EventBus.wave_complete.connect(_on_wave_complete)
+	EventBus.enemy_destroyed.connect(_on_enemy_killed_combo)
+
+func _process(delta: float) -> void:
+	if game_state != GameState.PLAYING:
+		return
+	if _combo_timer > 0.0:
+		_combo_timer -= delta
+		if _combo_timer <= 0.0:
+			_combo_count = 0
+			EventBus.combo_changed.emit(1)
 
 # ============================================================================
 # PUBLIC API
@@ -167,6 +185,17 @@ func _on_enemy_destroyed(position: Vector3, points: int) -> void:
 	"""React to an enemy missile being killed by explosion"""
 	add_score(points)
 
+func _on_enemy_killed_combo(_pos: Vector3, base_pts: int) -> void:
+	"""Track kill-streak combo and award bonus points"""
+	_combo_count += 1
+	_combo_timer = COMBO_WINDOW
+	var mult: int = min(_combo_count, 5)
+	if mult > 1:
+		# Bonus points on top of whatever was already added by the existing kill handler
+		score += base_pts * (mult - 1)
+		score_changed.emit(score)
+	EventBus.combo_changed.emit(mult)
+
 func _on_wave_complete() -> void:
 	"""React to all enemies being handled"""
 	# Don't process wave complete if game is already over
@@ -174,6 +203,10 @@ func _on_wave_complete() -> void:
 		return
 	
 	print("Wave %d complete!" % current_wave)
+	
+	# Reset combo between waves
+	_combo_count = 0
+	_combo_timer = 0.0
 	
 	game_state = GameState.WAVE_CLEAR
 	wave_cleared.emit(current_wave)

@@ -59,6 +59,9 @@ signal player_missile_detonated(position: Vector3, explosion_radius: float)
 # position: impact point
 signal incoming_missile_impacted(position: Vector3)
 
+# Emitted when kill-streak combo multiplier changes (1 = no combo)
+signal combo_changed(multiplier: int)
+
 # ============================================================================
 # WAVE EVENTS
 # ============================================================================
