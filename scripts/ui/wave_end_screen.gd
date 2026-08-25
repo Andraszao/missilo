@@ -59,7 +59,7 @@ func _build_layout() -> void:
 
 	for i in range(3):
 		var card = Button.new()
-		card.custom_minimum_size = Vector2(200, 100)
+		card.custom_minimum_size = Vector2(200, 120)
 		card.text = "..."
 		card.autowrap_mode = TextServer.AUTOWRAP_WORD
 		card.pressed.connect(_on_card_pressed.bind(i))
@@ -111,6 +111,28 @@ func _build_layout() -> void:
 	_timer.timeout.connect(_on_skip)
 	add_child(_timer)
 
+func _build_behavior_tags(mod: MissileModifier) -> Array[String]:
+	var tags: Array[String] = []
+	if mod.homing_strength > 0.0:
+		tags.append("HOMING %.0f%%" % (mod.homing_strength * 100))
+	if mod.split_count > 1:
+		tags.append("SPLIT x%d" % mod.split_count)
+	if mod.chain_depth > 0:
+		tags.append("CHAIN x%d" % mod.chain_depth)
+	if mod.pulse_count > 1:
+		tags.append("PULSE x%d" % mod.pulse_count)
+	if mod.magnetic:
+		tags.append("MAGNETIC")
+	if mod.amplify:
+		tags.append("AMPLIFY")
+	if mod.speed_multiplier > 1.05:
+		tags.append("+%d%% SPD" % int((mod.speed_multiplier - 1.0) * 100))
+	if mod.radius_multiplier > 1.05:
+		tags.append("+%d%% RAD" % int((mod.radius_multiplier - 1.0) * 100))
+	if mod.ammo_addition > 0:
+		tags.append("+%d AMMO" % mod.ammo_addition)
+	return tags
+
 func present_choices(wave: int, choices: Array[MissileModifier]) -> void:
 	_title_label.text = "WAVE %d COMPLETE!" % wave
 	_selected_modifier = null
@@ -118,15 +140,66 @@ func present_choices(wave: int, choices: Array[MissileModifier]) -> void:
 	_confirm_btn.disabled = true
 
 	for i in range(_modifier_cards.size()):
+		var card = _modifier_cards[i]
+		# Clear any previously added dynamic children
+		for child in card.get_children():
+			child.queue_free()
+
 		if i < choices.size():
 			var mod = choices[i]
-			_modifier_cards[i].text = "%s\n%s" % [mod.modifier_name, mod.description]
-			_modifier_cards[i].set_meta("modifier", mod)
-			_modifier_cards[i].disabled = false
-			_modifier_cards[i].button_pressed = false
+			card.text = ""
+
+			var inner = VBoxContainer.new()
+			inner.set_anchors_preset(Control.PRESET_FULL_RECT)
+			inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(inner)
+
+			var name_label = Label.new()
+			name_label.text = mod.modifier_name
+			name_label.add_theme_font_size_override("font_size", 13)
+			name_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+			name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			inner.add_child(name_label)
+
+			var desc_label = Label.new()
+			desc_label.text = mod.description
+			desc_label.add_theme_font_size_override("font_size", 11)
+			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+			desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			inner.add_child(desc_label)
+
+			var tags = _build_behavior_tags(mod)
+			if tags.size() > 0:
+				var tag_row = HBoxContainer.new()
+				tag_row.add_theme_constant_override("separation", 4)
+				tag_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				for tag in tags:
+					var chip = Label.new()
+					chip.text = tag
+					chip.add_theme_font_size_override("font_size", 10)
+					chip.add_theme_color_override("font_color", Color(0.3, 1.0, 0.65))
+					var style = StyleBoxFlat.new()
+					style.bg_color = Color(0.05, 0.15, 0.1)
+					style.border_color = Color(0.2, 0.6, 0.4)
+					style.border_width_left = 1
+					style.border_width_right = 1
+					style.border_width_top = 1
+					style.border_width_bottom = 1
+					style.content_margin_left = 4
+					style.content_margin_right = 4
+					style.content_margin_top = 2
+					style.content_margin_bottom = 2
+					chip.add_theme_stylebox_override("normal", style)
+					chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+					tag_row.add_child(chip)
+				inner.add_child(tag_row)
+
+			card.set_meta("modifier", mod)
+			card.disabled = false
+			card.button_pressed = false
 		else:
-			_modifier_cards[i].text = "(none)"
-			_modifier_cards[i].disabled = true
+			card.text = "(none)"
+			card.disabled = true
 
 	# Reset silo buttons, then disable buttons for destroyed silos
 	for btn in _silo_buttons:
