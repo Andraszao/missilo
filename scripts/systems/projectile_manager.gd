@@ -7,7 +7,7 @@ extends Node
 
 @export var initial_player_missile_pool: int = 20
 @export var initial_incoming_missile_pool: int = 60
-@export var initial_explosion_pool: int = 30
+@export var initial_explosion_pool: int = 50
 
 var player_missile_pool: Array = []
 var incoming_missile_pool: Array = []
@@ -78,9 +78,6 @@ func spawn_explosion(position: Vector3, radius: float = 6.0) -> Node:
 	return explosion
 
 func schedule_pulse_explosions(pos: Vector3, radius: float, count: int) -> void:
-	# Async: spawns count follow-up explosions at pos, 0.45 s apart.
-	# Runs as a background coroutine on ProjectileManager (safe after caller
-	# returns to pool).
 	for p in range(count):
 		await get_tree().create_timer(0.45 * (p + 1)).timeout
 		if not is_inside_tree():
