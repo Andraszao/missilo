@@ -24,6 +24,21 @@ enum GameState {
 var game_state: GameState = GameState.READY
 
 # ============================================================================
+# DIFFICULTY
+# ============================================================================
+
+## 0 = Easy, 1 = Normal, 2 = Hard
+var difficulty: int = 1
+
+func set_difficulty(d: int) -> void:
+	difficulty = clampi(d, 0, 2)
+	# Adjust combo window per difficulty tier
+	match difficulty:
+		0: combo_window = 1.2  # Easy: full window
+		1: combo_window = 1.2  # Normal: full window
+		2: combo_window = 0.9  # Hard: tighter window
+
+# ============================================================================
 # PROGRESSION TRACKING
 # ============================================================================
 
@@ -38,7 +53,8 @@ var silos_active: int = 3  # Starts at 3, decrements when silos die
 
 var _combo_count: int = 0
 var _combo_timer: float = 0.0
-const COMBO_WINDOW: float = 1.2
+## Combo window in seconds; adjusted by difficulty (Hard = 0.9, others = 1.2)
+var combo_window: float = 1.2
 
 # ============================================================================
 # CONFIGURATION
@@ -74,6 +90,10 @@ signal score_changed(new_score: int)
 # Fired when a wave clears and an upgrade can be chosen
 # wave_number: which wave just completed
 signal upgrade_available(wave_number: int)
+
+# Fired at the start of each wave on Easy difficulty so SiloManager can
+# perform a full ammo reload before the next wave begins.
+signal silo_reload_requested
 
 # ============================================================================
 # LIFECYCLE
@@ -188,7 +208,7 @@ func _on_enemy_destroyed(position: Vector3, points: int) -> void:
 func _on_enemy_killed_combo(_pos: Vector3, base_pts: int) -> void:
 	"""Track kill-streak combo and award bonus points"""
 	_combo_count += 1
-	_combo_timer = COMBO_WINDOW
+	_combo_timer = combo_window
 	var mult: int = min(_combo_count, 5)
 	if mult > 1:
 		# Bonus points on top of whatever was already added by the existing kill handler

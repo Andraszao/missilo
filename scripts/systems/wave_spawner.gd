@@ -27,6 +27,11 @@ var enemies_spawned: int = 0
 var enemies_remaining: int = 0
 var is_spawning: bool = false
 
+## Effective missile count after difficulty scaling is applied
+var _effective_missile_count: int = 0
+## Effective speed multiplier after difficulty scaling is applied
+var _effective_speed_mult: float = 1.0
+
 # ============================================================================
 # ENEMY TYPE DATA
 # ============================================================================
@@ -87,15 +92,30 @@ func start_wave(wave_number: int) -> void:
 		push_error("Failed to load wave config: %s" % config_path)
 		return
 
+	# Apply difficulty scaling
+	var diff: int = GameManager.difficulty
+	var count_mult_table: Array = [0.65, 1.0, 1.2]
+	var speed_mult_table: Array = [0.8,  1.0, 1.1]
+	var count_mult: float = count_mult_table[diff]
+	var speed_mult: float  = speed_mult_table[diff]
+
+	_effective_missile_count = max(1, roundi(current_wave_config.missile_count * count_mult))
+	_effective_speed_mult    = current_wave_config.speed_multiplier * speed_mult
+
+	# Easy difficulty: signal SiloManager to perform a full ammo reload
+	if diff == 0:
+		GameManager.silo_reload_requested.emit()
+
 	# Reset state
 	enemies_spawned = 0
-	enemies_remaining = current_wave_config.missile_count
+	enemies_remaining = _effective_missile_count
 	is_spawning = true
 
-	print("Starting wave %d: %d missiles at %.2fs intervals" % [
+	print("Starting wave %d: %d missiles (x%.2f) at speed x%.2f" % [
 		wave_number,
-		current_wave_config.missile_count,
-		current_wave_config.spawn_interval
+		_effective_missile_count,
+		count_mult,
+		_effective_speed_mult
 	])
 
 	# Start spawn timer
@@ -139,7 +159,7 @@ func spawn_enemy() -> void:
 	if current_wave_config == null or not is_spawning:
 		return
 
-	if enemies_spawned >= current_wave_config.missile_count:
+	if enemies_spawned >= _effective_missile_count:
 		# All enemies spawned, stop timer
 		spawn_timer.stop()
 		is_spawning = false
@@ -158,12 +178,12 @@ func spawn_enemy() -> void:
 	# Pick missile type based on current wave
 	var chosen_data: MissileData = _pick_missile_data(GameManager.current_wave)
 
-	# Spawn through ProjectileManager
+	# Spawn through ProjectileManager using difficulty-scaled speed
 	projectile_manager.spawn_incoming_missile(
 		chosen_data,
 		start_pos,
 		target_pos,
-		current_wave_config.speed_multiplier
+		_effective_speed_mult
 	)
 
 	enemies_spawned += 1
