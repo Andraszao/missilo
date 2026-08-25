@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MissileData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/missile_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+speed = 2.0
+points_value = 75
+mesh_color = Color(0.7, 0.2, 0.9, 1)
+trail_color = Color(0.9, 0.4, 1.0, 1)
+special_behavior = "cluster"
+health = 1
+impact_radius = 0.0
