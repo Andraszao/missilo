@@ -39,7 +39,7 @@ func _ready() -> void:
 	GameManager.score_changed.connect(_on_score_changed)
 	
 	# Connect to EventBus signals
-	EventBus.silo_fired.connect(_on_silo_fired)
+	EventBus.silo_ammo_changed.connect(_on_silo_ammo_changed)
 	EventBus.silo_destroyed.connect(_on_silo_destroyed)
 	EventBus.city_destroyed.connect(_on_city_destroyed)
 	
@@ -110,12 +110,11 @@ func _on_score_changed(new_score: int) -> void:
 	"""Score updated"""
 	_update_display()
 
-func _on_silo_fired(silo_index: int, target_position: Vector3) -> void:
-	"""Silo fired - decrement ammo (if not destroyed)"""
+func _on_silo_ammo_changed(silo_index: int, new_ammo: int) -> void:
+	"""Silo ammo changed - update display with true ammo count"""
 	if silo_index >= 0 and silo_index < silo_ammo.size():
-		if silo_ammo[silo_index] > 0:  # Only decrement if not destroyed
-			silo_ammo[silo_index] -= 1
-			_update_display()
+		silo_ammo[silo_index] = new_ammo
+		_update_display()
 
 func _on_silo_destroyed(silo_index: int) -> void:
 	"""Silo destroyed"""

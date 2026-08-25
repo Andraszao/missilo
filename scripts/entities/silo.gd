@@ -50,20 +50,23 @@ var _last_fire_sec: float = -9999.0  # allows immediate first shot
 func _ready() -> void:
 	# Initialize ammo
 	current_ammo = start_ammo
-	
+
 	# Setup visual state
 	selection_indicator.visible = false
-	
+
+	# Register in group so UpgradeManager can find silos
+	add_to_group("player_silo")
+
 	# Connect signals
 	EventBus.silo_selected.connect(_on_silo_selected)
 	EventBus.silo_fired.connect(_on_silo_fired)
 	GameManager.wave_cleared.connect(_on_wave_cleared)
-	
+
 	# Add hitbox to group and connect for incoming missile collisions
 	if hitbox:
 		hitbox.add_to_group("silo")
 		hitbox.area_entered.connect(_on_hitbox_area_entered)
-	
+
 	# If center silo, start selected
 	if silo_index == 1:
 		set_selected(true)
@@ -98,6 +101,7 @@ func fire(target: Vector3) -> bool:
 	projectile_manager.spawn_player_missile(launch_point.global_position, target, stats)
 
 	current_ammo -= 1
+	EventBus.silo_ammo_changed.emit(silo_index, current_ammo)
 	_update_visuals()
 	return true
 
@@ -109,7 +113,8 @@ func reload(amount: int = -1) -> void:
 		current_ammo = max_ammo
 	else:
 		current_ammo = min(current_ammo + amount, max_ammo)
-	
+
+	EventBus.silo_ammo_changed.emit(silo_index, current_ammo)
 	_update_visuals()
 
 func destroy() -> void:
@@ -213,7 +218,8 @@ func add_modifier(mod: MissileModifier) -> void:
 		max_ammo += mod.ammo_addition
 		current_ammo += mod.ammo_addition  # Give the ammo immediately
 		print("  → Max ammo increased to %d (current: %d)" % [max_ammo, current_ammo])
-	
+		EventBus.silo_ammo_changed.emit(silo_index, current_ammo)
+
 	_update_visuals()
 
 func calculate_stats() -> Dictionary:

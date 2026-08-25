@@ -63,6 +63,10 @@ signal game_over(final_score: int, did_win: bool)
 # new_score: current total score
 signal score_changed(new_score: int)
 
+# Fired when a wave clears and an upgrade can be chosen
+# wave_number: which wave just completed
+signal upgrade_available(wave_number: int)
+
 # ============================================================================
 # LIFECYCLE
 # ============================================================================
@@ -80,10 +84,9 @@ func _ready() -> void:
 
 func start_game() -> void:
 	"""Kick off a fresh game from the beginning"""
-	if game_state != GameState.READY:
-		push_warning("Tried to start game while already playing")
-		return
-	
+	if game_state == GameState.PLAYING or game_state == GameState.WAVE_CLEAR:
+		push_warning("Tried to start game while already in progress"); return
+
 	# Reset all state
 	current_wave = 0
 	score = 0
@@ -111,6 +114,12 @@ func advance_wave() -> void:
 	current_wave += 1
 	game_state = GameState.PLAYING
 	wave_started.emit(current_wave)
+
+func advance_when_ready() -> void:
+	"""Called by UpgradeManager after upgrade is chosen or skipped"""
+	if game_state != GameState.WAVE_CLEAR:
+		return
+	advance_wave()
 
 # ============================================================================
 # WIN/LOSS CONDITION CHECKS
@@ -174,16 +183,9 @@ func _on_wave_complete() -> void:
 	var silo_bonus = silos_active * 100
 	add_score(city_bonus + silo_bonus)
 	
-	# Check win condition
+	# Check win condition and emit upgrade signal
 	if check_win_condition():
 		end_game(true)
 		return
-	
-	# Brief pause before next wave
-	await get_tree().create_timer(2.0).timeout
-	
-	# Check again if still not game over (could have died during pause)
-	if game_state == GameState.GAME_OVER:
-		return
-	
-	advance_wave()
+
+	upgrade_available.emit(current_wave)  # UpgradeManager will call advance_when_ready()

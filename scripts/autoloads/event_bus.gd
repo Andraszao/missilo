@@ -28,6 +28,11 @@ signal silo_fired(silo_index: int, target_position: Vector3)
 # silo_index: which silo was destroyed
 signal silo_destroyed(silo_index: int)
 
+# Fired when a silo's ammo count changes (fire, reload, or modifier)
+# silo_index: which silo changed
+# new_ammo: the new ammo count
+signal silo_ammo_changed(silo_index: int, new_ammo: int)
+
 # ============================================================================
 # CITY EVENTS
 # ============================================================================
