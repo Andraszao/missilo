@@ -40,6 +40,19 @@ func initialize(start: Vector3, target: Vector3, stats: Dictionary = {}) -> void
 
 	_behaviors = stats.get("behaviors", {})
 
+	if trail:
+		var h  = _behaviors.get("homing", 0.0)
+		var sp = _behaviors.get("split", 1)
+		var ch = _behaviors.get("chain_depth", 0)
+		if h > 0.3:
+			trail.default_color = Color(1.0, 0.65, 0.0, 0.9)
+		elif sp > 1:
+			trail.default_color = Color(0.3, 1.0, 0.65, 0.9)
+		elif ch > 0:
+			trail.default_color = Color(0.4, 0.8, 1.0, 0.9)
+		else:
+			trail.default_color = Color(1.0, 1.0, 1.0, 0.8)
+
 	var direction = (target_position - start_position).normalized()
 	if direction.length() > 0.01:
 		var angle = atan2(direction.x, direction.y)

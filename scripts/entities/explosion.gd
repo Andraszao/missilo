@@ -7,7 +7,7 @@ extends Node3D
 #   magnetic:    expand hitbox to 1.35x radius during hold phase
 
 @export var max_radius: float = 3.0
-@export var growth_rate: float = 15.0
+@export var growth_rate: float = 20.0
 @export var hold_duration: float = 0.4
 @export var shrink_rate: float = 8.0
 
@@ -18,6 +18,17 @@ var current_radius: float = 0.0
 var hold_timer: float = 0.0
 var chain_generation: int = 0
 var _behaviors: Dictionary = {}
+
+func _get_behavior_color() -> Color:
+	if chain_generation > 0:
+		return Color(0.3, 0.9, 1.0)
+	if _behaviors.get("magnetic", false):
+		return Color(0.75, 0.2, 1.0)
+	if _behaviors.get("chain_depth", 0) > 0:
+		return Color(0.4, 0.85, 1.0)
+	if _behaviors.get("split", 1) > 1:
+		return Color(0.3, 1.0, 0.55)
+	return Color(1.0, 0.9, 0.1)
 
 @onready var visual_mesh: MeshInstance3D = $VisualMesh
 @onready var hitbox: Area3D = $Hitbox
@@ -79,6 +90,8 @@ func set_explosion_radius(radius: float) -> void:
 
 func set_chain_generation(generation: int) -> void:
 	chain_generation = generation
+	if generation > 0:
+		growth_rate = 26.0
 
 func _process(delta: float) -> void:
 	match current_phase:
@@ -119,12 +132,13 @@ func _update_visuals() -> void:
 		collision_shape.shape.radius = current_radius
 	var material = visual_mesh.get_surface_override_material(0)
 	if material:
-		var t = 1.0 - (current_radius / max_radius)
-		var color = Color.YELLOW.lerp(Color.ORANGE_RED, t)
-		# Tint chain explosions blue so the player can see cascades
-		if chain_generation > 0:
-			color = Color.CYAN.lerp(Color.DEEP_SKY_BLUE, t)
+		var t = clamp(1.0 - (current_radius / max(max_radius, 0.01)), 0.0, 1.0)
+		var color = _get_behavior_color().lerp(Color.ORANGE_RED, t * 0.65)
 		material.albedo_color = color
+		if material.has_property("emission_enabled"):
+			material.emission_enabled = (current_phase == Phase.HOLDING)
+			material.emission = _get_behavior_color()
+			material.emission_energy_multiplier = 1.8 if current_phase == Phase.HOLDING else 0.0
 
 func _enable_hitbox() -> void:
 	if hitbox:
