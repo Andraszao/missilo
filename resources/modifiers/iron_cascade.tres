@@ -1,0 +1,20 @@
+[gd_resource type="MissileModifier" script_class="MissileModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1_ironcasc"]
+
+[resource]
+script = ExtResource("1_ironcasc")
+modifier_name = "Iron Cascade"
+description = "Magnetic pull concentrates enemies at chain detonation points. +104% synergy score. Needs a Split base to close."
+category = "Behavior"
+speed_multiplier = 1.0
+radius_multiplier = 1.0
+ammo_addition = 0
+behavior_flag = ""
+behavior_params = "{}"
+homing_strength = 0.0
+split_count = 1
+chain_depth = 2
+pulse_count = 1
+magnetic = true
+amplify = false

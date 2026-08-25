@@ -2,20 +2,26 @@ class_name ProgressionManager extends Node
 
 const SAVE_PATH = "user://progression.cfg"
 
-# Milestone unlock map: modifier filename stem -> minimum wave required or win count
 const UNLOCK_TABLE = {
-	"blast_radius": {"wave": 0, "wins": 0},
-	"extra_ammo": {"wave": 0, "wins": 0},
-	"speed_boost": {"wave": 0, "wins": 0},
-	"tactical_warhead": {"wave": 5, "wins": 0},
-	"mega_blast": {"wave": 7, "wins": 0},
-	"rapid_shot": {"wave": 0, "wins": 1},
-	"veteran_loader": {"wave": 0, "wins": 3},
-	"chain_reaction": {"wave": 4, "wins": 0},
-	"scatter_shot": {"wave": 3, "wins": 0},
-	"precision_strike": {"wave": 6, "wins": 0},
-	"iron_reserve": {"wave": 5, "wins": 0},
-	"overcharge": {"wave": 8, "wins": 1},
+	# ── Stat anchors (always available) ──────────────────────────────
+	"blast_radius":      {"wave": 0, "wins": 0},
+	"extra_ammo":        {"wave": 0, "wins": 0},
+	"speed_boost":       {"wave": 0, "wins": 0},
+	"warhead":           {"wave": 0, "wins": 0},
+	# ── Behavioral primitives (early access) ─────────────────────────
+	"scatter_volley":    {"wave": 0, "wins": 0},
+	"homing_warhead":    {"wave": 0, "wins": 0},
+	"chain_reaction":    {"wave": 1, "wins": 0},
+	"pulse_wave":        {"wave": 2, "wins": 0},
+	"iron_curtain":      {"wave": 2, "wins": 0},
+	"kill_streak":       {"wave": 2, "wins": 0},
+	# ── Synergy composites (mid-game) ─────────────────────────────────
+	"amplified_scatter": {"wave": 3, "wins": 0},
+	"seeking_swarm":     {"wave": 4, "wins": 0},
+	"iron_cascade":      {"wave": 5, "wins": 0},
+	# ── S-tier composites (late-game locked) ─────────────────────────
+	"frag_chain":        {"wave": 7, "wins": 0},
+	"pulse_swarm":       {"wave": 8, "wins": 0},
 }
 
 var _best_wave: int = 0

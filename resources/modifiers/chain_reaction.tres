@@ -1,14 +1,20 @@
-[gd_resource type="Resource" script_class="MissileModifier" load_steps=2 format=3]
+[gd_resource type="MissileModifier" script_class="MissileModifier" load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1_chainr"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_chainr")
 modifier_name = "Chain Reaction"
-description = "+75% chain explosion radius\nKilled missiles explode bigger"
-category = "Stat"
+description = "A confirmed kill spawns a free secondary explosion at 62% radius. No ammo cost. Chains can chain."
+category = "Behavior"
 speed_multiplier = 1.0
-radius_multiplier = 1.75
+radius_multiplier = 1.1
 ammo_addition = 0
-behavior_flag = "chain_boost"
+behavior_flag = ""
 behavior_params = "{}"
+homing_strength = 0.0
+split_count = 1
+chain_depth = 1
+pulse_count = 1
+magnetic = false
+amplify = false
