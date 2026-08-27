@@ -9,6 +9,7 @@ const BG_COLOR    := Color(0.0, 0.0, 0.0, 0.88)
 var _salvage_label: Label
 var _node_rows_container: VBoxContainer
 var _prestige_btn: Button
+var _confirm_overlay: Control = null
 
 func _ready() -> void:
 	layer = 12
@@ -72,10 +73,10 @@ func _build_ui() -> void:
 	var sep2 := HSeparator.new()
 	panel.add_child(sep2)
 
-	# Prestige button (hidden by default)
+	# Prestige button (hidden by default; shown when can_prestige() is true)
 	_prestige_btn = Button.new()
-	_prestige_btn.text = "PRESTIGE (reset tree, keep bonus)"
-	_prestige_btn.add_theme_color_override("font_color", Color(1.0, 0.6, 0.0))
+	_prestige_btn.text = "PRESTIGE (reset tree, gain +10% radius aura)"
+	_prestige_btn.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0))
 	_prestige_btn.visible = false
 	_prestige_btn.pressed.connect(_on_prestige_pressed)
 	panel.add_child(_prestige_btn)
@@ -92,6 +93,13 @@ func _build_ui() -> void:
 # Signal handlers
 # ---------------------------------------------------------------------------
 func _on_game_over(_score: int, _did_win: bool) -> void:
+	# Don't show immediately — wait for RunSummary to dismiss first.
+	if RunSummary.has_signal("run_summary_dismissed"):
+		RunSummary.run_summary_dismissed.connect(_show_tree, CONNECT_ONE_SHOT)
+	else:
+		_show_tree()
+
+func _show_tree() -> void:
 	_refresh_nodes()
 	_update_salvage_label()
 	_prestige_btn.visible = ProgressionManager.can_prestige()
@@ -101,10 +109,88 @@ func _on_continue_pressed() -> void:
 	hide()
 
 func _on_prestige_pressed() -> void:
+	_show_prestige_confirm()
+
+# ---------------------------------------------------------------------------
+# Prestige confirmation dialog
+# ---------------------------------------------------------------------------
+func _show_prestige_confirm() -> void:
+	if _confirm_overlay != null:
+		return
+
+	_confirm_overlay = ColorRect.new()
+	(_confirm_overlay as ColorRect).color = Color(0.0, 0.0, 0.0, 0.75)
+	_confirm_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_confirm_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_confirm_overlay)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_confirm_overlay.add_child(center)
+
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(340.0, 0.0)
+	box.add_theme_constant_override("separation", 12)
+	center.add_child(box)
+
+	var heading := Label.new()
+	heading.text = "PRESTIGE?"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 20)
+	heading.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0))
+	box.add_child(heading)
+
+	var desc := Label.new()
+	desc.text = "All purchased upgrades will be reset.\nYou gain a permanent +10%% explosion radius aura.\nThis cannot be undone."
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc.add_theme_font_size_override("font_size", 12)
+	desc.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(desc)
+
+	var current_p := ProgressionManager.get_prestige_count()
+	var info := Label.new()
+	info.text = "Prestige %d -> %d   |   Radius aura x%.2f -> x%.2f" % [
+		current_p,
+		current_p + 1,
+		ProgressionManager.get_prestige_radius_aura(),
+		1.0 + (current_p + 1) * 0.10
+	]
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info.add_theme_font_size_override("font_size", 12)
+	info.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0))
+	box.add_child(info)
+
+	box.add_child(HSeparator.new())
+
+	var btn_row := HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_row.add_theme_constant_override("separation", 20)
+	box.add_child(btn_row)
+
+	var yes_btn := Button.new()
+	yes_btn.text = "YES — PRESTIGE"
+	yes_btn.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0))
+	yes_btn.pressed.connect(_do_prestige)
+	btn_row.add_child(yes_btn)
+
+	var no_btn := Button.new()
+	no_btn.text = "CANCEL"
+	no_btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	no_btn.pressed.connect(_close_prestige_confirm)
+	btn_row.add_child(no_btn)
+
+func _close_prestige_confirm() -> void:
+	if _confirm_overlay != null:
+		_confirm_overlay.queue_free()
+		_confirm_overlay = null
+
+func _do_prestige() -> void:
 	ProgressionManager.prestige()
+	_close_prestige_confirm()
 	_refresh_nodes()
 	_update_salvage_label()
-	_prestige_btn.visible = ProgressionManager.can_prestige()
+	_prestige_btn.visible = false  # hide after use this session
 
 func _on_buy_pressed(node_id: String) -> void:
 	ProgressionManager.purchase_node(node_id)

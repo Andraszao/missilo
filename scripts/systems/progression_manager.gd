@@ -81,6 +81,10 @@ var _achievements_unlocked: Array[String] = []
 var _missiles_destroyed_total: int = 0
 var _peak_combo_ever: int = 0
 
+# Per-run tracking (reset each game_over, not persisted)
+var _missiles_destroyed_this_run: int = 0
+var _peak_combo_this_run: int = 0
+
 ## Mutators active for the current run.  Reset to empty between runs.
 ## Set via set_active_mutators() before start_game() is called.
 var _active_mutators: Array[String] = []
@@ -130,10 +134,19 @@ func _on_game_over(_score: int, did_win: bool) -> void:
 	var base_salvage: int = max(1, wave) * 10 + _score / 100
 	var salvage: int = int(base_salvage * get_salvage_multiplier())
 	_salvage_points += salvage
-	_run_history.append({"wave": wave, "score": _score, "salvage": salvage, "modifiers": [], "peak_combo": 0})
+	_run_history.append({
+		"wave":       wave,
+		"score":      _score,
+		"salvage":    salvage,
+		"modifiers":  [],
+		"missiles":   _missiles_destroyed_this_run,
+		"peak_combo": _peak_combo_this_run,
+	})
 	if _run_history.size() > 10:
 		_run_history = _run_history.slice(_run_history.size() - 10)
 	_salvage_this_run = 0
+	_missiles_destroyed_this_run = 0
+	_peak_combo_this_run = 0
 	_active_mutators.clear()
 	_check_achievements()
 	_save()
@@ -141,10 +154,13 @@ func _on_game_over(_score: int, did_win: bool) -> void:
 func _on_enemy_destroyed_meta(_pos, _pts) -> void:
 	_salvage_this_run += 1
 	_missiles_destroyed_total += 1
+	_missiles_destroyed_this_run += 1
 
 func _on_combo_changed_meta(mult: int) -> void:
 	if mult > _peak_combo_ever:
 		_peak_combo_ever = mult
+	if mult > _peak_combo_this_run:
+		_peak_combo_this_run = mult
 	_check_achievements()
 
 # ============================================================================
@@ -187,6 +203,7 @@ func get_run_history() -> Array: return _run_history.duplicate()
 func get_salvage_points() -> int: return _salvage_points
 func get_purchased_nodes() -> Array: return _purchased_nodes.duplicate()
 func get_prestige_count() -> int: return _prestige_count
+func get_peak_combo_ever() -> int: return _peak_combo_ever
 func is_node_purchased(id: String) -> bool: return id in _purchased_nodes
 
 func can_purchase_node(id: String) -> bool:
@@ -243,6 +260,7 @@ func prestige() -> void:
 	if not can_prestige(): return
 	_purchased_nodes.clear()
 	_prestige_count += 1
+	_check_achievements()
 	_save()
 
 func get_prestige_radius_aura() -> float:

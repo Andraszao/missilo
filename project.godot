@@ -25,6 +25,7 @@ AudioManager="*res://scripts/systems/audio_manager.gd"
 MainMenu="*res://scripts/ui/main_menu.gd"
 GameOverScreen="*res://scripts/ui/game_over_screen.gd"
 TutorialOverlay="*res://scripts/ui/tutorial_overlay.gd"
+RunSummary="*res://scripts/ui/run_summary.gd"
 TreeScreen="*res://scripts/ui/tree_screen.gd"
 AchievementPopup="*res://scripts/ui/achievement_popup.gd"
 
