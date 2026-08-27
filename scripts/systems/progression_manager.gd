@@ -3,35 +3,64 @@ class_name ProgressionManager extends Node
 const SAVE_PATH = "user://progression.cfg"
 
 const UNLOCK_TABLE = {
-	# ── Stat anchors (always available) ─────────────────────────────────────────
+	# ── Stat anchors (always available) ────────────────────────────────────────────
 	"blast_radius":      {"wave": 0, "wins": 0},
 	"extra_ammo":        {"wave": 0, "wins": 0},
 	"speed_boost":       {"wave": 0, "wins": 0},
 	"warhead":           {"wave": 0, "wins": 0},
-	# ── Behavioral primitives (early access) ─────────────────────────────
+	# ── Behavioral primitives (early access) ──────────────────────────
 	"scatter_volley":    {"wave": 0, "wins": 0},
 	"homing_warhead":    {"wave": 0, "wins": 0},
 	"chain_reaction":    {"wave": 1, "wins": 0},
 	"pulse_wave":        {"wave": 2, "wins": 0},
 	"iron_curtain":      {"wave": 2, "wins": 0},
 	"kill_streak":       {"wave": 2, "wins": 0},
-	# ── Synergy composites (mid-game) ─────────────────────────────────────
+	# ── Synergy composites (mid-game) ───────────────────────────────────
 	"amplified_scatter": {"wave": 3, "wins": 0},
 	"seeking_swarm":     {"wave": 4, "wins": 0},
 	"iron_cascade":      {"wave": 5, "wins": 0},
-	# ── S-tier composites (late-game locked) ─────────────────────────────
+	# ── S-tier composites (late-game locked) ──────────────────────────────
 	"frag_chain":        {"wave": 7, "wins": 0},
 	"pulse_swarm":       {"wave": 8, "wins": 0},
+}
+
+const UNLOCK_TREE = {
+	# Tier 1 — starting bonuses (always available, cheap)
+	"extra_ammo":             {"cost": 50,  "requires": [],                          "tier": 1, "effect": "Start each run with +2 ammo per silo"},
+	"wider_radius":           {"cost": 50,  "requires": [],                          "tier": 1, "effect": "Start with +15% explosion radius"},
+	"fast_reload":            {"cost": 75,  "requires": [],                          "tier": 1, "effect": "Silos reload 20% faster between waves"},
+	"reroll_charge":          {"cost": 100, "requires": [],                          "tier": 1, "effect": "Get 1 free modifier reroll per run"},
+	# Tier 2 — modifier pool expansion (requires 1 tier-1 purchase)
+	"unlock_pulse_swarm":     {"cost": 150, "requires": ["extra_ammo"],              "tier": 2, "effect": "Adds PULSE_SWARM to the upgrade pool"},
+	"unlock_frag_chain":      {"cost": 150, "requires": ["wider_radius"],            "tier": 2, "effect": "Adds FRAG_CHAIN to the upgrade pool"},
+	"unlock_iron_cascade":    {"cost": 200, "requires": ["fast_reload"],             "tier": 2, "effect": "Adds IRON_CASCADE to the upgrade pool"},
+	# Tier 3 — city tech branch
+	"city_shield":            {"cost": 100, "requires": [],                          "tier": 1, "effect": "Cities absorb one hit before being destroyed"},
+	"city_repair_discount":   {"cost": 150, "requires": ["city_shield"],             "tier": 2, "effect": "City repairs cost 50% fewer points"},
+	"extra_starting_city":    {"cost": 200, "requires": ["city_repair_discount"],    "tier": 3, "effect": "Start each run with 6 cities instead of 5"},
+	# Loadout slots (P5)
+	"silo_loadout_left":      {"cost": 175, "requires": ["unlock_frag_chain"],       "tier": 3, "effect": "Left silo always starts with FRAG_CHAIN"},
+	"silo_loadout_center":    {"cost": 175, "requires": ["unlock_pulse_swarm"],      "tier": 3, "effect": "Center silo always starts with PULSE_SWARM"},
+	"silo_loadout_right":     {"cost": 175, "requires": ["unlock_iron_cascade"],     "tier": 3, "effect": "Right silo always starts with IRON_CASCADE"},
 }
 
 var _best_wave: int = 0
 var _win_count: int = 0
 var _run_count: int = 0
 var _run_history: Array = []
+var _salvage_points: int = 0
+var _salvage_this_run: int = 0
+var _purchased_nodes: Array[String] = []
+var _prestige_count: int = 0
+var _achievements_unlocked: Array[String] = []
+var _missiles_destroyed_total: int = 0
+var _peak_combo_ever: int = 0
 
 func _ready() -> void:
 	_load()
 	GameManager.game_over.connect(_on_game_over)
+	EventBus.enemy_destroyed.connect(_on_enemy_destroyed_meta)
+	EventBus.combo_changed.connect(_on_combo_changed_meta)
 
 func _load() -> void:
 	var cfg = ConfigFile.new()
@@ -41,6 +70,12 @@ func _load() -> void:
 		_run_count = cfg.get_value("stats", "run_count", 0)
 		var raw = cfg.get_value("stats", "run_history", [])
 		_run_history = raw
+		_salvage_points = cfg.get_value("stats", "salvage_points", 0)
+		_purchased_nodes = cfg.get_value("stats", "purchased_nodes", [])
+		_prestige_count = cfg.get_value("stats", "prestige_count", 0)
+		_achievements_unlocked = cfg.get_value("stats", "achievements_unlocked", [])
+		_missiles_destroyed_total = cfg.get_value("stats", "missiles_destroyed_total", 0)
+		_peak_combo_ever = cfg.get_value("stats", "peak_combo_ever", 0)
 
 func _save() -> void:
 	var cfg = ConfigFile.new()
@@ -48,18 +83,36 @@ func _save() -> void:
 	cfg.set_value("stats", "win_count", _win_count)
 	cfg.set_value("stats", "run_count", _run_count)
 	cfg.set_value("stats", "run_history", _run_history)
+	cfg.set_value("stats", "salvage_points", _salvage_points)
+	cfg.set_value("stats", "purchased_nodes", _purchased_nodes)
+	cfg.set_value("stats", "prestige_count", _prestige_count)
+	cfg.set_value("stats", "achievements_unlocked", _achievements_unlocked)
+	cfg.set_value("stats", "missiles_destroyed_total", _missiles_destroyed_total)
+	cfg.set_value("stats", "peak_combo_ever", _peak_combo_ever)
 	cfg.save(SAVE_PATH)
 
 func _on_game_over(_score: int, did_win: bool) -> void:
 	_run_count += 1
-	if GameManager.current_wave > _best_wave:
-		_best_wave = GameManager.current_wave
+	var wave = GameManager.current_wave
+	if wave > _best_wave:
+		_best_wave = wave
 	if did_win:
 		_win_count += 1
-	_run_history.append({"wave": GameManager.current_wave, "score": _score})
-	if _run_history.size() > 5:
-		_run_history = _run_history.slice(_run_history.size() - 5)
+	var salvage = max(1, wave) * 10 + _score / 100
+	_salvage_points += salvage
+	_run_history.append({"wave": wave, "score": _score, "salvage": salvage, "modifiers": [], "peak_combo": 0})
+	if _run_history.size() > 10:
+		_run_history = _run_history.slice(_run_history.size() - 10)
+	_salvage_this_run = 0
 	_save()
+
+func _on_enemy_destroyed_meta(_pos, _pts) -> void:
+	_salvage_this_run += 1
+	_missiles_destroyed_total += 1
+
+func _on_combo_changed_meta(mult: int) -> void:
+	if mult > _peak_combo_ever:
+		_peak_combo_ever = mult
 
 func get_unlocked_stems() -> Array[String]:
 	var result: Array[String] = []
@@ -72,4 +125,67 @@ func get_unlocked_stems() -> Array[String]:
 func get_best_wave() -> int: return _best_wave
 func get_win_count() -> int: return _win_count
 func get_run_count() -> int: return _run_count
-func get_run_history() -> Array: return _run_history
+func get_run_history() -> Array: return _run_history.duplicate()
+func get_salvage_points() -> int: return _salvage_points
+func get_purchased_nodes() -> Array: return _purchased_nodes.duplicate()
+func get_prestige_count() -> int: return _prestige_count
+func is_node_purchased(id: String) -> bool: return id in _purchased_nodes
+
+func can_purchase_node(id: String) -> bool:
+	if not id in UNLOCK_TREE: return false
+	if id in _purchased_nodes: return false
+	var node = UNLOCK_TREE[id]
+	if _salvage_points < node["cost"]: return false
+	for req in node["requires"]:
+		if not req in _purchased_nodes: return false
+	return true
+
+func purchase_node(id: String) -> bool:
+	if not can_purchase_node(id): return false
+	_salvage_points -= UNLOCK_TREE[id]["cost"]
+	_purchased_nodes.append(id)
+	_save()
+	return true
+
+func get_available_nodes() -> Array[String]:
+	var result: Array[String] = []
+	for id in UNLOCK_TREE:
+		if can_purchase_node(id): result.append(id)
+	return result
+
+func has_bonus(key: String) -> bool:
+	return key in _purchased_nodes
+
+func get_starting_ammo_bonus() -> int:
+	return 2 if "extra_ammo" in _purchased_nodes else 0
+
+func get_radius_bonus() -> float:
+	return 1.15 if "wider_radius" in _purchased_nodes else 1.0
+
+func get_city_shield() -> bool:
+	return "city_shield" in _purchased_nodes
+
+func get_starting_city_count() -> int:
+	return 6 if "extra_starting_city" in _purchased_nodes else 5
+
+func get_silo_loadout(silo_index: int) -> String:
+	match silo_index:
+		0: return "frag_chain" if "silo_loadout_left" in _purchased_nodes else ""
+		1: return "pulse_swarm" if "silo_loadout_center" in _purchased_nodes else ""
+		2: return "iron_cascade" if "silo_loadout_right" in _purchased_nodes else ""
+	return ""
+
+func get_reroll_charges() -> int:
+	return 1 if "reroll_charge" in _purchased_nodes else 0
+
+func can_prestige() -> bool:
+	return _win_count >= 3 and _prestige_count < 5
+
+func prestige() -> void:
+	if not can_prestige(): return
+	_purchased_nodes.clear()
+	_prestige_count += 1
+	_save()
+
+func get_prestige_radius_aura() -> float:
+	return 1.0 + _prestige_count * 0.10
