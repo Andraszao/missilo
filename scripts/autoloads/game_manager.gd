@@ -57,6 +57,14 @@ var base_radius_multiplier: float = 1.0
 var starting_ammo_bonus: int = 0
 
 # ============================================================================
+# P6 MUTATOR FLAGS (set at run start, read by spawners and silo logic)
+# ============================================================================
+
+## Set by the "chain_world" mutator; silo.calculate_stats() should add 1 to
+## chain_depth when this is true.
+var chain_world_active: bool = false
+
+# ============================================================================
 # COMBO TRACKING
 # ============================================================================
 
@@ -147,6 +155,11 @@ func start_game() -> void:
 	game_state = GameState.PLAYING
 	game_started.emit()
 
+	# P5: Equip pre-assigned loadout modifiers to silos
+	_apply_silo_loadouts()
+	# P6: Apply active run mutator effects (ammo penalties, chain flag, etc.)
+	_apply_mutator_effects()
+
 	# Start first wave
 	advance_wave()
 
@@ -172,6 +185,10 @@ func advance_when_ready() -> void:
 		return
 	advance_wave()
 
+func get_missile_spawn_multiplier() -> int:
+	"""Returns the wave missile count multiplier (P6 double_missiles mutator)."""
+	return 2 if ProgressionManager.has_mutator("double_missiles") else 1
+
 # ============================================================================
 # WIN/LOSS CONDITION CHECKS
 # ============================================================================
@@ -182,11 +199,11 @@ func check_loss_condition() -> bool:
 	if cities_alive <= 0:
 		print("GAME OVER: All cities destroyed")
 		return true
-	
+
 	if silos_active <= 0:
 		print("GAME OVER: All silos destroyed")
 		return true
-	
+
 	return false
 
 func check_win_condition() -> bool:
@@ -202,7 +219,7 @@ func _on_city_destroyed(city_index: int) -> void:
 	"""React to a city being destroyed"""
 	cities_alive -= 1
 	print("City %d destroyed! Cities remaining: %d" % [city_index, cities_alive])
-	
+
 	if check_loss_condition():
 		end_game(false)
 
@@ -210,7 +227,7 @@ func _on_silo_destroyed(silo_index: int) -> void:
 	"""React to a silo being destroyed"""
 	silos_active -= 1
 	print("Silo %d destroyed! Silos remaining: %d" % [silo_index, silos_active])
-	
+
 	if check_loss_condition():
 		end_game(false)
 
@@ -234,24 +251,62 @@ func _on_wave_complete() -> void:
 	# Don't process wave complete if game is already over
 	if game_state == GameState.GAME_OVER:
 		return
-	
+
 	print("Wave %d complete!" % current_wave)
-	
+
 	# Reset combo between waves
 	_combo_count = 0
 	_combo_timer = 0.0
-	
+
 	game_state = GameState.WAVE_CLEAR
 	wave_cleared.emit(current_wave)
-	
+
 	# Calculate wave bonuses
 	var city_bonus = cities_alive * 100
 	var silo_bonus = silos_active * 100
 	add_score(city_bonus + silo_bonus)
-	
+
 	# Check win condition and emit upgrade signal
 	if check_win_condition():
 		end_game(true)
 		return
 
 	upgrade_available.emit(current_wave)  # UpgradeManager will call advance_when_ready()
+
+# ============================================================================
+# P5/P6 RUN SETUP HELPERS
+# ============================================================================
+
+func _apply_silo_loadouts() -> void:
+	"""Equip pre-assigned modifiers to silos based on unlock-tree loadout slots (P5).
+
+	Called after game_started so silo nodes are in the scene tree.  For each
+	silo the ProgressionManager returns a modifier stem (resource filename
+	without extension); if the matching .tres exists it is appended to the
+	silo's equipped_modifiers array before the first wave begins.
+	"""
+	for silo in get_tree().get_nodes_in_group("player_silo"):
+		var idx: int = silo.silo_index
+		var stem: String = ProgressionManager.get_silo_loadout(idx)
+		if stem != "":
+			var mod_path: String = "res://resources/modifiers/%s.tres" % stem
+			if ResourceLoader.exists(mod_path):
+				var mod = load(mod_path)
+				silo.equipped_modifiers.append(mod)
+				print("Silo %d loadout: equipped %s" % [idx, stem])
+
+func _apply_mutator_effects() -> void:
+	"""Apply active run mutator effects to silos and game-wide flags (P6).
+
+	- chain_world  -> sets chain_world_active flag; silo.calculate_stats()
+	                 should honour this flag to add 1 chain_depth.
+	- half_ammo    -> halves each silo's max_ammo and current_ammo.
+	- double_missiles -> no per-silo work; spawners call get_missile_spawn_multiplier().
+	"""
+	chain_world_active = ProgressionManager.has_mutator("chain_world")
+
+	if ProgressionManager.has_mutator("half_ammo"):
+		for silo in get_tree().get_nodes_in_group("player_silo"):
+			silo.max_ammo = max(1, silo.max_ammo / 2)
+			silo.current_ammo = max(1, silo.current_ammo / 2)
+			EventBus.silo_ammo_changed.emit(silo.silo_index, silo.current_ammo)

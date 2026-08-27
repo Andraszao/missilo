@@ -8,18 +8,18 @@ const UNLOCK_TABLE = {
 	"extra_ammo":        {"wave": 0, "wins": 0},
 	"speed_boost":       {"wave": 0, "wins": 0},
 	"warhead":           {"wave": 0, "wins": 0},
-	# ── Behavioral primitives (early access) ──────────────────────────
+	# ── Behavioral primitives (early access) ──────────────────
 	"scatter_volley":    {"wave": 0, "wins": 0},
 	"homing_warhead":    {"wave": 0, "wins": 0},
 	"chain_reaction":    {"wave": 1, "wins": 0},
 	"pulse_wave":        {"wave": 2, "wins": 0},
 	"iron_curtain":      {"wave": 2, "wins": 0},
 	"kill_streak":       {"wave": 2, "wins": 0},
-	# ── Synergy composites (mid-game) ───────────────────────────────────
+	# ── Synergy composites (mid-game) ───────────────────────────
 	"amplified_scatter": {"wave": 3, "wins": 0},
 	"seeking_swarm":     {"wave": 4, "wins": 0},
 	"iron_cascade":      {"wave": 5, "wins": 0},
-	# ── S-tier composites (late-game locked) ──────────────────────────────
+	# ── S-tier composites (late-game locked) ────────────────────
 	"frag_chain":        {"wave": 7, "wins": 0},
 	"pulse_swarm":       {"wave": 8, "wins": 0},
 }
@@ -44,6 +44,16 @@ const UNLOCK_TREE = {
 	"silo_loadout_right":     {"cost": 175, "requires": ["unlock_iron_cascade"],     "tier": 3, "effect": "Right silo always starts with IRON_CASCADE"},
 }
 
+## Run mutators: optional per-run rule modifiers unlocked by win count.
+## Each entry maps a mutator id to its display label, description, and the
+## minimum _win_count required to offer it to the player.
+const MUTATOR_TABLE = {
+	"double_missiles": {"label": "BLITZ",      "description": "+100% missile count, +50% salvage",          "requires_win": 1},
+	"half_ammo":       {"label": "RATIONED",   "description": "50% ammo per silo, +75% salvage",            "requires_win": 1},
+	"iron_city":       {"label": "IRON CITY",  "description": "Cities have 1 HP, +100% salvage",            "requires_win": 2},
+	"chain_world":     {"label": "CHAIN WORLD","description": "All explosions chain once for free",          "requires_win": 3},
+}
+
 var _best_wave: int = 0
 var _win_count: int = 0
 var _run_count: int = 0
@@ -55,6 +65,10 @@ var _prestige_count: int = 0
 var _achievements_unlocked: Array[String] = []
 var _missiles_destroyed_total: int = 0
 var _peak_combo_ever: int = 0
+
+## Mutators active for the current run.  Reset to empty between runs.
+## Set via set_active_mutators() before start_game() is called.
+var _active_mutators: Array[String] = []
 
 func _ready() -> void:
 	_load()
@@ -98,12 +112,14 @@ func _on_game_over(_score: int, did_win: bool) -> void:
 		_best_wave = wave
 	if did_win:
 		_win_count += 1
-	var salvage = max(1, wave) * 10 + _score / 100
+	var base_salvage: int = max(1, wave) * 10 + _score / 100
+	var salvage: int = int(base_salvage * get_salvage_multiplier())
 	_salvage_points += salvage
 	_run_history.append({"wave": wave, "score": _score, "salvage": salvage, "modifiers": [], "peak_combo": 0})
 	if _run_history.size() > 10:
 		_run_history = _run_history.slice(_run_history.size() - 10)
 	_salvage_this_run = 0
+	_active_mutators.clear()
 	_save()
 
 func _on_enemy_destroyed_meta(_pos, _pts) -> void:
@@ -189,3 +205,35 @@ func prestige() -> void:
 
 func get_prestige_radius_aura() -> float:
 	return 1.0 + _prestige_count * 0.10
+
+# ============================================================================
+# P6 RUN MUTATOR API
+# ============================================================================
+
+func get_available_mutators() -> Array[String]:
+	"""Return mutator ids the player has earned (requires_win <= current win count)."""
+	var result: Array[String] = []
+	for id in MUTATOR_TABLE:
+		if _win_count >= MUTATOR_TABLE[id]["requires_win"]:
+			result.append(id)
+	return result
+
+func set_active_mutators(ids: Array[String]) -> void:
+	"""Set the mutators active for the upcoming run.  Call before start_game()."""
+	_active_mutators = ids.duplicate()
+
+func get_active_mutators() -> Array[String]:
+	"""Return a copy of the currently active mutator id list."""
+	return _active_mutators.duplicate()
+
+func has_mutator(id: String) -> bool:
+	"""True if the given mutator is active this run."""
+	return id in _active_mutators
+
+func get_salvage_multiplier() -> float:
+	"""Cumulative salvage multiplier from all active mutators."""
+	var mult: float = 1.0
+	if has_mutator("double_missiles"): mult *= 1.5
+	if has_mutator("half_ammo"):       mult *= 1.75
+	if has_mutator("iron_city"):       mult *= 2.0
+	return mult
