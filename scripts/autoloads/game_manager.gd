@@ -65,6 +65,15 @@ var starting_ammo_bonus: int = 0
 var chain_world_active: bool = false
 
 # ============================================================================
+# P8 CITY TECH FLAGS (set at run start from ProgressionManager)
+# ============================================================================
+
+## True when the city_shield unlock is purchased; cities absorb one hit each.
+var city_shield_active: bool = false
+## Tracks which cities have already consumed their shield this run (indices 0-5).
+var _city_shields_used: Array[bool] = []
+
+# ============================================================================
 # COMBO TRACKING
 # ============================================================================
 
@@ -152,6 +161,10 @@ func start_game() -> void:
 	starting_ammo_bonus = ProgressionManager.get_starting_ammo_bonus()
 	cities_alive = ProgressionManager.get_starting_city_count()
 
+	# P8: City tech branch — shield and extra city
+	city_shield_active = ProgressionManager.get_city_shield()
+	_city_shields_used = [false, false, false, false, false, false]
+
 	game_state = GameState.PLAYING
 	game_started.emit()
 
@@ -217,6 +230,14 @@ func check_win_condition() -> bool:
 
 func _on_city_destroyed(city_index: int) -> void:
 	"""React to a city being destroyed"""
+	# P8: city_shield absorbs the first hit per city before counting as a loss.
+	if city_shield_active \
+			and city_index >= 0 and city_index < _city_shields_used.size() \
+			and not _city_shields_used[city_index]:
+		_city_shields_used[city_index] = true
+		print("City %d shield absorbed hit!" % city_index)
+		return
+
 	cities_alive -= 1
 	print("City %d destroyed! Cities remaining: %d" % [city_index, cities_alive])
 

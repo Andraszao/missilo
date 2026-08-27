@@ -68,3 +68,12 @@ signal combo_changed(multiplier: int)
 
 # Fired when all enemies in current wave are destroyed/impacted
 signal wave_complete()
+
+# ============================================================================
+# ACHIEVEMENT EVENTS
+# ============================================================================
+
+# Fired when an achievement is unlocked
+# achievement_id: the string key from ACHIEVEMENT_TABLE
+# label: human-readable display name
+signal achievement_unlocked(achievement_id: String, label: String)

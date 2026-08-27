@@ -3,23 +3,23 @@ class_name ProgressionManager extends Node
 const SAVE_PATH = "user://progression.cfg"
 
 const UNLOCK_TABLE = {
-	# ── Stat anchors (always available) ────────────────────────────────────────────
+	# ── Stat anchors (always available) ──────────────────────────────────────────────
 	"blast_radius":      {"wave": 0, "wins": 0},
 	"extra_ammo":        {"wave": 0, "wins": 0},
 	"speed_boost":       {"wave": 0, "wins": 0},
 	"warhead":           {"wave": 0, "wins": 0},
-	# ── Behavioral primitives (early access) ──────────────────
+	# ── Behavioral primitives (early access) ──────────────────────────
 	"scatter_volley":    {"wave": 0, "wins": 0},
 	"homing_warhead":    {"wave": 0, "wins": 0},
 	"chain_reaction":    {"wave": 1, "wins": 0},
 	"pulse_wave":        {"wave": 2, "wins": 0},
 	"iron_curtain":      {"wave": 2, "wins": 0},
 	"kill_streak":       {"wave": 2, "wins": 0},
-	# ── Synergy composites (mid-game) ───────────────────────────
+	# ── Synergy composites (mid-game) ─────────────────────────────────────
 	"amplified_scatter": {"wave": 3, "wins": 0},
 	"seeking_swarm":     {"wave": 4, "wins": 0},
 	"iron_cascade":      {"wave": 5, "wins": 0},
-	# ── S-tier composites (late-game locked) ────────────────────
+	# ── S-tier composites (late-game locked) ────────────────────────────
 	"frag_chain":        {"wave": 7, "wins": 0},
 	"pulse_swarm":       {"wave": 8, "wins": 0},
 }
@@ -52,6 +52,21 @@ const MUTATOR_TABLE = {
 	"half_ammo":       {"label": "RATIONED",   "description": "50% ammo per silo, +75% salvage",            "requires_win": 1},
 	"iron_city":       {"label": "IRON CITY",  "description": "Cities have 1 HP, +100% salvage",            "requires_win": 2},
 	"chain_world":     {"label": "CHAIN WORLD","description": "All explosions chain once for free",          "requires_win": 3},
+}
+
+# ============================================================================
+# P7 ACHIEVEMENT TABLE
+# ============================================================================
+
+const ACHIEVEMENT_TABLE = {
+	"first_blood":  {"label": "First Blood",    "desc": "Destroy your first missile",  "trigger": "missiles_1",   "salvage": 25},
+	"chain_killer": {"label": "Chain Killer",   "desc": "Get a chain kill",             "trigger": "chain_kill_1", "salvage": 50},
+	"combo_x5":     {"label": "Combo!",         "desc": "Reach x5 combo",              "trigger": "combo_5",      "salvage": 50},
+	"combo_x10":    {"label": "Destroyer",      "desc": "Reach x10 combo",             "trigger": "combo_10",     "salvage": 100},
+	"wave_10":      {"label": "Veteran",        "desc": "Survive wave 10",             "trigger": "wave_10",      "salvage": 150},
+	"first_win":    {"label": "Defender",       "desc": "Win your first run",          "trigger": "win_1",        "salvage": 200},
+	"missiles_500": {"label": "Annihilator",    "desc": "Destroy 500 missiles total",  "trigger": "missiles_500", "salvage": 300},
+	"prestige_1":   {"label": "Decommissioned", "desc": "Prestige once",               "trigger": "prestige_1",   "salvage": 500},
 }
 
 var _best_wave: int = 0
@@ -120,6 +135,7 @@ func _on_game_over(_score: int, did_win: bool) -> void:
 		_run_history = _run_history.slice(_run_history.size() - 10)
 	_salvage_this_run = 0
 	_active_mutators.clear()
+	_check_achievements()
 	_save()
 
 func _on_enemy_destroyed_meta(_pos, _pts) -> void:
@@ -129,6 +145,32 @@ func _on_enemy_destroyed_meta(_pos, _pts) -> void:
 func _on_combo_changed_meta(mult: int) -> void:
 	if mult > _peak_combo_ever:
 		_peak_combo_ever = mult
+	_check_achievements()
+
+# ============================================================================
+# P7 ACHIEVEMENT LOGIC
+# ============================================================================
+
+func _check_achievements() -> void:
+	_try_unlock("first_blood",  _missiles_destroyed_total >= 1)
+	_try_unlock("chain_killer", false)  # triggered externally via unlock_achievement()
+	_try_unlock("combo_x5",     _peak_combo_ever >= 5)
+	_try_unlock("combo_x10",    _peak_combo_ever >= 10)
+	_try_unlock("wave_10",      _best_wave >= 10)
+	_try_unlock("first_win",    _win_count >= 1)
+	_try_unlock("missiles_500", _missiles_destroyed_total >= 500)
+	_try_unlock("prestige_1",   _prestige_count >= 1)
+
+func _try_unlock(id: String, condition: bool) -> void:
+	if condition and not id in _achievements_unlocked:
+		_achievements_unlocked.append(id)
+		_salvage_points += ACHIEVEMENT_TABLE[id]["salvage"]
+		EventBus.achievement_unlocked.emit(id, ACHIEVEMENT_TABLE[id]["label"])
+		_save()
+
+func unlock_achievement(id: String) -> void:
+	"""Externally trigger an achievement unlock (e.g. chain_killer from kill-streak logic)."""
+	_try_unlock(id, true)
 
 func get_unlocked_stems() -> Array[String]:
 	var result: Array[String] = []
