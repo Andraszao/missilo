@@ -48,6 +48,15 @@ var cities_alive: int = 6  # Starts at 6, decrements when cities die
 var silos_active: int = 3  # Starts at 3, decrements when silos die
 
 # ============================================================================
+# STARTING BONUSES (populated at run start from ProgressionManager)
+# ============================================================================
+
+## Explosion radius multiplier for all silos this run; silos read this on init.
+var base_radius_multiplier: float = 1.0
+## Extra ammo per silo granted by the unlock tree; silos read this on init.
+var starting_ammo_bonus: int = 0
+
+# ============================================================================
 # COMBO TRACKING
 # ============================================================================
 
@@ -128,12 +137,16 @@ func start_game() -> void:
 	# Reset all state
 	current_wave = 0
 	score = 0
-	cities_alive = TOTAL_CITIES
 	silos_active = TOTAL_SILOS
-	
+
+	# Apply unlock-tree bonuses for this run
+	base_radius_multiplier = ProgressionManager.get_radius_bonus() * ProgressionManager.get_prestige_radius_aura()
+	starting_ammo_bonus = ProgressionManager.get_starting_ammo_bonus()
+	cities_alive = ProgressionManager.get_starting_city_count()
+
 	game_state = GameState.PLAYING
 	game_started.emit()
-	
+
 	# Start first wave
 	advance_wave()
 

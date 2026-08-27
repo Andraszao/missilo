@@ -4,6 +4,9 @@ class_name UpgradeManager extends Node
 # Loads all .tres modifier resources from the modifiers directory,
 # presents 3 random choices after each wave, and applies the chosen
 # modifier to the selected silo before advancing to the next wave.
+#
+# S-tier modifiers (pulse_swarm, frag_chain, iron_cascade) are excluded
+# from the pool unless the matching unlock-tree node has been purchased.
 
 var _modifier_pool: Array[MissileModifier] = []
 var _wave_end_screen: WaveEndScreen  # created in _ready
@@ -27,11 +30,20 @@ func _load_modifier_pool() -> void:
 	while fname != "":
 		if fname.ends_with(".tres"):
 			var stem = fname.get_basename()
-			if stem in unlocked:
+			if stem in unlocked and _is_modifier_available(stem):
 				var mod = load("res://resources/modifiers/" + fname) as MissileModifier
 				if mod:
 					_modifier_pool.append(mod)
 		fname = dir.get_next()
+
+## Returns false for S-tier modifiers that require an unlock-tree purchase.
+## All other modifiers return true (gated only by wave/wins in UNLOCK_TABLE).
+func _is_modifier_available(stem: String) -> bool:
+	match stem:
+		"pulse_swarm":   return ProgressionManager.is_node_purchased("unlock_pulse_swarm")
+		"frag_chain":    return ProgressionManager.is_node_purchased("unlock_frag_chain")
+		"iron_cascade":  return ProgressionManager.is_node_purchased("unlock_iron_cascade")
+	return true  # all others always available once unlocked by wave/wins
 
 func _on_upgrade_available(wave_number: int) -> void:
 	_modifier_pool.shuffle()
