@@ -14,7 +14,6 @@ var _behaviors_label: Label
 var _refresh_timer: Timer
 
 func _ready() -> void:
-	# Combo label — center top
 	_combo_label = Label.new()
 	_combo_label.add_theme_font_size_override("font_size", 22)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0))
@@ -30,7 +29,6 @@ func _ready() -> void:
 	_combo_label.visible = false
 	add_child(_combo_label)
 
-	# Behavior chip label — bottom center, polls silos every 2 s
 	_behaviors_label = Label.new()
 	_behaviors_label.add_theme_font_size_override("font_size", 10)
 	_behaviors_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.65))
@@ -112,7 +110,9 @@ func show_status_message(message: String, duration: float = 2.0) -> void:
 	status_label.visible = false
 
 func _on_game_started() -> void:
-	silo_ammo = [7, 7, 7]
+	# Use actual starting ammo (base 7 + any tree bonus) rather than hardcoding
+	var base_ammo = 7 + GameManager.starting_ammo_bonus
+	silo_ammo = [base_ammo, base_ammo, base_ammo]
 	status_label.visible = false
 	_update_display()
 	_refresh_behavior_chips()
@@ -122,9 +122,13 @@ func _on_wave_started(wave_number: int) -> void:
 	show_status_message("Wave %d - Incoming!" % wave_number, 1.5)
 
 func _on_wave_cleared(wave_number: int) -> void:
-	for i in range(silo_ammo.size()):
-		if silo_ammo[i] >= 0:
-			silo_ammo[i] = 7
+	# Read actual max_ammo from each silo so modifier-boosted ammo counts correctly
+	var silos = get_tree().get_nodes_in_group("player_silo")
+	silos.sort_custom(func(a, b): return a.silo_index < b.silo_index)
+	for silo in silos:
+		var idx = silo.silo_index
+		if idx >= 0 and idx < silo_ammo.size() and silo_ammo[idx] >= 0:
+			silo_ammo[idx] = silo.max_ammo
 	_update_display()
 	show_status_message("Wave %d Clear!" % wave_number, 2.0)
 

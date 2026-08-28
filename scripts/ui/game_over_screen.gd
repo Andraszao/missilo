@@ -49,7 +49,9 @@ func _build_ui() -> void:
 	var retry_btn = Button.new()
 	retry_btn.text = "PLAY AGAIN"
 	retry_btn.custom_minimum_size = Vector2(200, 52)
-	retry_btn.pressed.connect(func(): visible = false; GameManager.start_game())
+	# reload_current_scene resets all scene nodes (silos, cities, projectiles)
+	# while autoloads (ProgressionManager, GameManager) persist across the reload
+	retry_btn.pressed.connect(func(): get_tree().reload_current_scene())
 	vbox.add_child(retry_btn)
 
 	_history_box = VBoxContainer.new()
