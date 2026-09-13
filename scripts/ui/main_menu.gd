@@ -46,6 +46,12 @@ func _build_ui() -> void:
 	start_btn.pressed.connect(func(): GameManager.start_game())
 	vbox.add_child(start_btn)
 
+	var settings_btn = Button.new()
+	settings_btn.text = "SETTINGS"
+	settings_btn.custom_minimum_size = Vector2(240, 44)
+	settings_btn.pressed.connect(func(): SettingsScreen.show())
+	vbox.add_child(settings_btn)
+
 	# Difficulty row
 	var diff_hbox = HBoxContainer.new()
 	diff_hbox.alignment = BoxContainer.ALIGNMENT_CENTER

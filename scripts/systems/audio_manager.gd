@@ -291,6 +291,11 @@ func play_split_pop() -> void:
 		_push(_get_pb(), _sine_buf(440.0, 0.05, 0.20, 0.003, 0.3))
 		await get_tree().create_timer(0.11).timeout
 
+func set_music_volume(v: float) -> void:
+	if _music_player:
+		_music_player.volume_db = linear_to_db(max(v * 0.25, 0.001))  # music is already quieter
+	_music_enabled = v > 0.0
+
 
 # ── Signal handlers ─────────────────────────────────────────────────────────
 
