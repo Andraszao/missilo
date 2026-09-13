@@ -19,6 +19,8 @@ func _ready() -> void:
 	screen.upgrade_confirmed.connect(_on_upgrade_confirmed)
 	screen.upgrade_skipped.connect(_on_upgrade_skipped)
 	GameManager.upgrade_available.connect(_on_upgrade_available)
+	# Rebuild the pool after each wave so mid-run milestone unlocks appear immediately
+	GameManager.wave_cleared.connect(_on_wave_cleared_rebuild)
 
 func _load_modifier_pool() -> void:
 	var unlocked = ProgressionManager.get_unlocked_stems()
@@ -44,6 +46,11 @@ func _is_modifier_available(stem: String) -> bool:
 		"frag_chain":    return ProgressionManager.is_node_purchased("unlock_frag_chain")
 		"iron_cascade":  return ProgressionManager.is_node_purchased("unlock_iron_cascade")
 	return true  # all others always available once unlocked by wave/wins
+
+func _on_wave_cleared_rebuild(_wave: int) -> void:
+	"""Rebuild the modifier pool so any wave-milestone unlocks take effect immediately"""
+	_modifier_pool.clear()
+	_load_modifier_pool()
 
 func _on_upgrade_available(wave_number: int) -> void:
 	_modifier_pool.shuffle()

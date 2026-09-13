@@ -45,6 +45,9 @@ func _ready() -> void:
 	# Find silos (they'll register themselves or we find them)
 	# For now, we'll get them on first use
 
+	# Auto-switch selection when the active silo is destroyed
+	EventBus.silo_destroyed.connect(_on_silo_destroyed)
+
 func _process(_delta: float) -> void:
 	"""Update mouse world position every frame"""
 	if camera != null:
@@ -130,6 +133,24 @@ func cache_silo_references() -> void:
 			silos.append(child)
 	
 	silos.sort_custom(func(a, b): return a.silo_index < b.silo_index)
+
+# ============================================================================
+# SILO DESTROYED HANDLER
+# ============================================================================
+
+func _on_silo_destroyed(destroyed_index: int) -> void:
+	"""Auto-switch to nearest live silo when the selected silo is destroyed"""
+	if selected_silo_index != destroyed_index:
+		return
+	
+	# Get all live silos sorted by index and pick the first active one
+	var live_silos = get_tree().get_nodes_in_group("player_silo")
+	live_silos.sort_custom(func(a, b): return a.silo_index < b.silo_index)
+	for silo in live_silos:
+		if silo.is_active and silo.silo_index != destroyed_index:
+			selected_silo_index = silo.silo_index
+			EventBus.silo_selected.emit(silo.silo_index)
+			return
 
 # ============================================================================
 # HELPERS
