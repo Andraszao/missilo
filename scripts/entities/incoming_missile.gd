@@ -18,6 +18,8 @@ var move_velocity: Vector3 = Vector3.ZERO
 var speed: float = 3.0
 var is_active: bool = false
 var hit_by_generation: int = 0  # Track what generation of explosion hit this missile
+var _current_health: int = 1
+var _is_armored: bool = false
 
 # ============================================================================
 # NODES
@@ -50,6 +52,10 @@ func initialize(data: MissileData, start: Vector3, target: Vector3, speed_mult: 
 	global_position = start
 	is_active = true
 
+	# Initialize health from data
+	_current_health = missile_data.health if missile_data else 1
+	_is_armored = _current_health > 1
+
 	# Calculate speed with multiplier
 	speed = data.speed * speed_mult
 
@@ -71,6 +77,9 @@ func initialize(data: MissileData, start: Vector3, target: Vector3, speed_mult: 
 	var material = mesh.get_surface_override_material(0)
 	if material:
 		material.albedo_color = data.mesh_color
+
+	# Apply type-specific visuals (overrides mesh_color for named types)
+	_apply_type_visuals()
 
 func _physics_process(delta: float) -> void:
 	"""
@@ -109,6 +118,26 @@ func impact() -> void:
 func set_hit_by_generation(generation: int) -> void:
 	"""Track what generation of explosion hit this missile"""
 	hit_by_generation = generation
+
+func take_hit() -> void:
+	"""
+	Receive a hit from an explosion. Armored missiles require multiple hits.
+	"""
+	_current_health -= 1
+	if _current_health <= 0:
+		destroy()
+	else:
+		_flash_armor_hit()
+
+func _flash_armor_hit() -> void:
+	"""Brief white flash to show the missile survived a hit."""
+	var mat = mesh.get_surface_override_material(0) if mesh else null
+	if mat:
+		var orig = mat.albedo_color
+		mat.albedo_color = Color(1.0, 1.0, 1.0)
+		await get_tree().create_timer(0.12).timeout
+		if is_inside_tree() and mat:
+			mat.albedo_color = orig
 
 func destroy() -> void:
 	"""
@@ -163,6 +192,22 @@ func destroy() -> void:
 		explosion.visible = true
 		explosion.set_process(true)
 		queue_free()
+
+# ============================================================================
+# VISUALS
+# ============================================================================
+
+func _apply_type_visuals() -> void:
+	"""Apply color tinting based on missile type (overrides mesh_color for named types)."""
+	var mat = mesh.get_surface_override_material(0) if mesh else null
+	if mat == null:
+		return
+	var mtype = missile_data.missile_type if missile_data else "standard"
+	match mtype:
+		"armored": mat.albedo_color = Color(1.0, 0.35, 0.1)   # orange-red
+		"scout":   mat.albedo_color = Color(0.2, 0.9, 1.0)    # cyan
+		"mirv":    mat.albedo_color = Color(1.0, 0.9, 0.0)    # gold
+		_:         pass  # keep default set by mesh_color above
 
 # ============================================================================
 # CLUSTER BEHAVIOR
@@ -236,4 +281,4 @@ func _on_hitbox_area_entered(area: Area3D) -> void:
 	Explosions have Area3D hitboxes that grow with their radius.
 	"""
 	if area.is_in_group("explosion"):
-		destroy()
+		take_hit()

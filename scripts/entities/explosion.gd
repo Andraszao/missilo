@@ -47,9 +47,12 @@ func _on_area_entered(area: Area3D) -> void:
 		var missile = area.get_parent()
 		if missile and missile.has_method("set_hit_by_generation"):
 			missile.set_hit_by_generation(chain_generation)
-		if missile and missile.has_method("destroy"):
+		if missile:
 			var kill_pos = missile.global_position
-			missile.destroy()
+			if missile.has_method("take_hit"):
+				missile.take_hit()
+			elif missile.has_method("destroy"):
+				missile.destroy()
 			_spawn_chain(kill_pos)
 
 func _spawn_chain(kill_pos: Vector3) -> void:
