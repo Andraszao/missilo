@@ -87,6 +87,29 @@ func initialize(pos: Vector3) -> void:
 		call_deferred("_enable_hitbox")
 
 	_update_visuals()
+	_spawn_shockwave()
+
+func _spawn_shockwave() -> void:
+	var ring = MeshInstance3D.new()
+	var torus = TorusMesh.new()
+	torus.inner_radius = 0.05
+	torus.outer_radius = 0.12
+	ring.mesh = torus
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.85, 0.3, 0.85)
+	mat.flags_transparent = true
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring.material_override = mat
+	ring.position = Vector3.ZERO
+	add_child(ring)
+
+	var target_scale = max_radius * 2.2
+	var tw = create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(ring, "scale", Vector3(target_scale, target_scale, target_scale), 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.28)
+	tw.tween_callback(ring.queue_free)
 
 func set_explosion_radius(radius: float) -> void:
 	max_radius = radius

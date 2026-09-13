@@ -28,6 +28,7 @@ TutorialOverlay="*res://scripts/ui/tutorial_overlay.gd"
 RunSummary="*res://scripts/ui/run_summary.gd"
 TreeScreen="*res://scripts/ui/tree_screen.gd"
 AchievementPopup="*res://scripts/ui/achievement_popup.gd"
+WaveAnnouncement="*res://scripts/ui/wave_announcement.gd"
 
 [input]
 
