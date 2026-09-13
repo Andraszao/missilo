@@ -15,10 +15,50 @@ var explosion_radius: float = 6.0
 var _behaviors: Dictionary = {}
 
 @onready var mesh: MeshInstance3D = $Mesh
-@onready var trail: Line2D = $Trail
+var _trail: GPUParticles3D = null
 
 func _ready() -> void:
 	add_to_group("player_missile")
+	_setup_trail()
+
+func _setup_trail() -> void:
+	_trail = GPUParticles3D.new()
+	_trail.amount = 20
+	_trail.lifetime = 0.28
+	_trail.local_coords = false  # world-space so trail stays behind as missile moves
+	_trail.emitting = false
+	_trail.one_shot = false
+	_trail.explosiveness = 0.0
+	_trail.randomness = 0.15
+	_trail.fixed_fps = 0
+
+	var mat = ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINT
+	mat.direction = Vector3.ZERO
+	mat.spread = 18.0
+	mat.initial_velocity_min = 0.05
+	mat.initial_velocity_max = 0.18
+	mat.damping_min = 3.0
+	mat.damping_max = 5.0
+	mat.scale_min = 0.10
+	mat.scale_max = 0.20
+	mat.gravity = Vector3.ZERO
+
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 0.9))
+	gradient.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = gradient
+	mat.color_ramp = grad_tex
+
+	_trail.process_material = mat
+
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.07
+	sphere.height = 0.14
+	_trail.draw_pass_1 = sphere
+
+	add_child(_trail)
 
 func initialize(start: Vector3, target: Vector3, stats: Dictionary = {}) -> void:
 	start_position = start
@@ -40,18 +80,20 @@ func initialize(start: Vector3, target: Vector3, stats: Dictionary = {}) -> void
 
 	_behaviors = stats.get("behaviors", {})
 
-	if trail:
+	# Color trail by active behavior — modulate tints the white base gradient
+	if _trail:
 		var h  = _behaviors.get("homing", 0.0)
 		var sp = _behaviors.get("split", 1)
 		var ch = _behaviors.get("chain_depth", 0)
 		if h > 0.3:
-			trail.default_color = Color(1.0, 0.65, 0.0, 0.9)
+			_trail.modulate = Color(1.0, 0.65, 0.0)   # orange — homing
 		elif sp > 1:
-			trail.default_color = Color(0.3, 1.0, 0.65, 0.9)
+			_trail.modulate = Color(0.3, 1.0, 0.65)   # green — split
 		elif ch > 0:
-			trail.default_color = Color(0.4, 0.8, 1.0, 0.9)
+			_trail.modulate = Color(0.4, 0.8, 1.0)    # cyan — chain
 		else:
-			trail.default_color = Color(1.0, 1.0, 1.0, 0.8)
+			_trail.modulate = Color(1.0, 1.0, 1.0)    # white — base
+		_trail.emitting = true
 
 	var direction = (target_position - start_position).normalized()
 	if direction.length() > 0.01:
@@ -98,6 +140,9 @@ func detonate() -> void:
 		return
 	has_detonated = true
 
+	if _trail:
+		_trail.emitting = false
+
 	EventBus.player_missile_detonated.emit(target_position, explosion_radius)
 
 	var pm = get_node_or_null("/root/Main/ProjectileManager")
@@ -140,10 +185,8 @@ func _spawn_fragments(pm: Node, count: int, homing_frags: float, chain_depth: in
 	for i in range(count):
 		var frag_pos: Vector3
 		if i < enemies.size():
-			# Home fragment toward an actual threat
 			frag_pos = enemies[i].global_position
 		else:
-			# Radial spread around detonation point
 			var angle = (float(i) / max(count, 1)) * TAU + (PI / max(count, 1))
 			frag_pos = target_position + Vector3(cos(angle) * 3.5, 0.0, sin(angle) * 3.5)
 
