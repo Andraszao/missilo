@@ -21,6 +21,11 @@ var hit_by_generation: int = 0  # Track what generation of explosion hit this mi
 var _current_health: int = 1
 var _is_armored: bool = false
 
+# MIRV tracking
+var _mirv_has_split: bool = false
+var _travel_fraction: float = 0.0
+var _total_distance: float = 0.0
+
 # ============================================================================
 # NODES
 # ============================================================================
@@ -52,6 +57,10 @@ func initialize(data: MissileData, start: Vector3, target: Vector3, speed_mult: 
 	global_position = start
 	is_active = true
 
+	# Reset MIRV tracking for pool reuse
+	_mirv_has_split = false
+	_travel_fraction = 0.0
+
 	# Initialize health from data
 	_current_health = missile_data.health if missile_data else 1
 	_is_armored = _current_health > 1
@@ -62,6 +71,9 @@ func initialize(data: MissileData, start: Vector3, target: Vector3, speed_mult: 
 	# Calculate velocity vector
 	var direction = (target_position - start_position).normalized()
 	move_velocity = direction * speed
+
+	# Store total distance for MIRV travel fraction tracking
+	_total_distance = start.distance_to(target)
 
 	# Point mesh toward target (downward)
 	# Calculate angle and rotate to point down at target
@@ -91,6 +103,18 @@ func _physics_process(delta: float) -> void:
 	# Move missile
 	velocity = move_velocity
 	move_and_slide()
+
+	# Track travel fraction (0 = at spawn, 1 = at target)
+	if _total_distance > 0.0:
+		_travel_fraction = 1.0 - (global_position.distance_to(target_position) / _total_distance)
+
+	# MIRV: split into 3 child missiles at 40% of travel
+	if missile_data and missile_data.missile_type == "mirv" and not _mirv_has_split:
+		if _travel_fraction >= 0.4:
+			_mirv_has_split = true
+			_spawn_mirv_children()
+			destroy()
+			return
 
 	# Check if reached target
 	if global_position.distance_to(target_position) < 0.5:  # Close enough
@@ -204,10 +228,49 @@ func _apply_type_visuals() -> void:
 		return
 	var mtype = missile_data.missile_type if missile_data else "standard"
 	match mtype:
-		"armored": mat.albedo_color = Color(1.0, 0.35, 0.1)   # orange-red
-		"scout":   mat.albedo_color = Color(0.2, 0.9, 1.0)    # cyan
-		"mirv":    mat.albedo_color = Color(1.0, 0.9, 0.0)    # gold
-		_:         pass  # keep default set by mesh_color above
+		"armored":
+			mat.albedo_color = Color(1.0, 0.35, 0.1)   # orange-red
+		"scout":
+			mat.albedo_color = Color(0.2, 0.9, 1.0)    # cyan
+			mesh.scale = Vector3(0.5, 1.0, 0.5)         # thin visual
+		"mirv":
+			mat.albedo_color = Color(1.0, 0.9, 0.0)    # gold
+		_:
+			pass  # keep default set by mesh_color above
+
+# ============================================================================
+# MIRV BEHAVIOR
+# ============================================================================
+
+func _spawn_mirv_children() -> void:
+	"""
+	Spawn 3 child missiles toward cities when MIRV reaches 40% of its travel.
+	Called from _physics_process() when missile_type == "mirv".
+	"""
+	EventBus.mirv_split.emit(global_position)
+
+	var cities = get_tree().get_nodes_in_group("city")
+	var alive_cities = cities.filter(func(c): return c.is_alive)
+	var targets: Array[Vector3] = []
+
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	if alive_cities.size() >= 3:
+		alive_cities.shuffle()
+		for i in range(3):
+			targets.append(alive_cities[i].global_position)
+	else:
+		# Spread across the ground plane
+		for i in range(3):
+			var x = rng.randf_range(-20.0, 20.0)
+			targets.append(Vector3(x, 0.0, 0.0))
+
+	var pm = get_node_or_null("/root/Main/ProjectileManager")
+	if pm == null:
+		return
+
+	for target in targets:
+		pm.spawn_incoming_missile(missile_data, global_position, target, 1.2)
 
 # ============================================================================
 # CLUSTER BEHAVIOR

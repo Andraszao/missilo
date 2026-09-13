@@ -62,6 +62,10 @@ signal incoming_missile_impacted(position: Vector3)
 # Emitted when kill-streak combo multiplier changes (1 = no combo)
 signal combo_changed(multiplier: int)
 
+# Fired when a MIRV missile splits into child missiles
+# position: world position where the split occurred
+signal mirv_split(position: Vector3)
+
 # ============================================================================
 # WAVE EVENTS
 # ============================================================================
