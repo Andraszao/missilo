@@ -35,10 +35,14 @@ extends Resource
 #   "armored" - requires 2 explosion hits to destroy
 @export var special_behavior: String = "none"
 
-# Health for future armored missiles
-# MVP: All missiles have 1 HP (instant death)
+# Health for armored missiles — how many explosion hits to destroy
+# 1 = instant death (standard), 2+ = armored
 @export var health: int = 1
 
 # Future: Explosion radius if missile reaches target
 # Could make some missiles more dangerous on impact
 @export var impact_radius: float = 0.0
+
+# Missile type identifier for visual differentiation and behavior hooks
+# "standard", "armored", "scout", "mirv"
+@export var missile_type: String = "standard"

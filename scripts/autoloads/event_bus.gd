@@ -28,6 +28,11 @@ signal silo_fired(silo_index: int, target_position: Vector3)
 # silo_index: which silo was destroyed
 signal silo_destroyed(silo_index: int)
 
+# Fired when a silo's ammo count changes (fire, reload, or modifier)
+# silo_index: which silo changed
+# new_ammo: the new ammo count
+signal silo_ammo_changed(silo_index: int, new_ammo: int)
+
 # ============================================================================
 # CITY EVENTS
 # ============================================================================
@@ -54,9 +59,25 @@ signal player_missile_detonated(position: Vector3, explosion_radius: float)
 # position: impact point
 signal incoming_missile_impacted(position: Vector3)
 
+# Emitted when kill-streak combo multiplier changes (1 = no combo)
+signal combo_changed(multiplier: int)
+
+# Fired when a MIRV missile splits into child missiles
+# position: world position where the split occurred
+signal mirv_split(position: Vector3)
+
 # ============================================================================
 # WAVE EVENTS
 # ============================================================================
 
 # Fired when all enemies in current wave are destroyed/impacted
 signal wave_complete()
+
+# ============================================================================
+# ACHIEVEMENT EVENTS
+# ============================================================================
+
+# Fired when an achievement is unlocked
+# achievement_id: the string key from ACHIEVEMENT_TABLE
+# label: human-readable display name
+signal achievement_unlocked(achievement_id: String, label: String)

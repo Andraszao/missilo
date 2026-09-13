@@ -1,105 +1,125 @@
 extends Node3D
 # Explosion: Area of effect that destroys incoming missiles
 #
-# Lifecycle:
-# 1. Spawned at detonation point
-# 2. Grows rapidly to max_radius
-# 3. Holds at max_radius briefly
-# 4. Shrinks back to zero
-# 5. Returns to pool
-#
-# Collision Strategy:
-# - Uses Area3D that scales with radius
-# - Incoming missiles detect entry via area_entered signal
-# - Only active during growth and hold phases
-
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
+# Lifecycle: GROWING -> HOLDING -> SHRINKING -> INACTIVE -> pool
+# Behaviors (set via set_behaviors after spawn):
+#   chain_depth: spawn a secondary explosion at each kill position
+#   magnetic:    expand hitbox to 1.35x radius during hold phase
 
 @export var max_radius: float = 3.0
-@export var growth_rate: float = 15.0  # Units per second
-@export var hold_duration: float = 0.4  # Seconds to hold at max size
-@export var shrink_rate: float = 8.0   # Units per second
-
-# ============================================================================
-# STATE
-# ============================================================================
+@export var growth_rate: float = 20.0
+@export var hold_duration: float = 0.4
+@export var shrink_rate: float = 8.0
 
 enum Phase { GROWING, HOLDING, SHRINKING, INACTIVE }
 
 var current_phase: Phase = Phase.INACTIVE
 var current_radius: float = 0.0
 var hold_timer: float = 0.0
-var chain_generation: int = 0  # 0 = player explosion, 1+ = chain reactions
+var chain_generation: int = 0
+var _behaviors: Dictionary = {}
 
-# ============================================================================
-# NODES
-# ============================================================================
+func _get_behavior_color() -> Color:
+	if chain_generation > 0:
+		return Color(0.3, 0.9, 1.0)
+	if _behaviors.get("magnetic", false):
+		return Color(0.75, 0.2, 1.0)
+	if _behaviors.get("chain_depth", 0) > 0:
+		return Color(0.4, 0.85, 1.0)
+	if _behaviors.get("split", 1) > 1:
+		return Color(0.3, 1.0, 0.55)
+	return Color(1.0, 0.9, 0.1)
 
 @onready var visual_mesh: MeshInstance3D = $VisualMesh
 @onready var hitbox: Area3D = $Hitbox
 @onready var collision_shape: CollisionShape3D = $Hitbox/CollisionShape3D
 
-# ============================================================================
-# LIFECYCLE
-# ============================================================================
-
 func _ready() -> void:
 	add_to_group("explosion")
-	
-	# Connect to area_entered signal to debug
 	if hitbox:
 		hitbox.area_entered.connect(_on_area_entered)
 
+func set_behaviors(b: Dictionary) -> void:
+	_behaviors = b
+
 func _on_area_entered(area: Area3D) -> void:
-	"""Explosion hit something - destroy if it's an incoming missile"""
 	if area.is_in_group("incoming_missile"):
-		# Get the parent IncomingMissile node and tell it what generation hit it
 		var missile = area.get_parent()
 		if missile and missile.has_method("set_hit_by_generation"):
 			missile.set_hit_by_generation(chain_generation)
-		if missile and missile.has_method("destroy"):
-			missile.destroy()
+		if missile:
+			var kill_pos = missile.global_position
+			if missile.has_method("take_hit"):
+				missile.take_hit()
+			elif missile.has_method("destroy"):
+				missile.destroy()
+			_spawn_chain(kill_pos)
+
+func _spawn_chain(kill_pos: Vector3) -> void:
+	var depth = _behaviors.get("chain_depth", 0)
+	if depth <= 0:
+		return
+	var pm = get_node_or_null("/root/Main/ProjectileManager")
+	if not pm:
+		return
+	var chain_radius = max_radius * 0.62
+	var chain_exp = pm.spawn_explosion(kill_pos, chain_radius)
+	if chain_exp.has_method("set_behaviors"):
+		var chain_behaviors = _behaviors.duplicate()
+		chain_behaviors["chain_depth"] = depth - 1
+		chain_exp.set_behaviors(chain_behaviors)
 
 func initialize(pos: Vector3) -> void:
-	"""
-	Setup explosion at position and begin growth.
-	Called by ProjectileManager when spawning from pool.
-	"""
 	global_position = pos
 	current_radius = 0.0
 	current_phase = Phase.GROWING
 	hold_timer = 0.0
-	chain_generation = 0  # Default to player explosion
-	
-	# Reset to default size (in case it was changed)
-	max_radius = 3.0  # Player missile explosions
-	
-	# Create unique collision shape for this explosion instance
+	chain_generation = 0
+	_behaviors = {}
+	max_radius = 3.0
+
 	if collision_shape.shape is SphereShape3D:
 		var new_shape = SphereShape3D.new()
-		new_shape.radius = 0.1  # Start with small radius
+		new_shape.radius = 0.1
 		collision_shape.shape = new_shape
-	
-	# Ensure hitbox is active (deferred to avoid physics query conflicts)
+
 	if hitbox:
 		call_deferred("_enable_hitbox")
-	
+
 	_update_visuals()
+	_spawn_shockwave()
+
+func _spawn_shockwave() -> void:
+	var ring = MeshInstance3D.new()
+	var torus = TorusMesh.new()
+	torus.inner_radius = 0.05
+	torus.outer_radius = 0.12
+	ring.mesh = torus
+
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.85, 0.3, 0.85)
+	mat.flags_transparent = true
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring.material_override = mat
+	ring.position = Vector3.ZERO
+	add_child(ring)
+
+	var target_scale = max_radius * 2.2
+	var tw = create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(ring, "scale", Vector3(target_scale, target_scale, target_scale), 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.28)
+	tw.tween_callback(ring.queue_free)
 
 func set_explosion_radius(radius: float) -> void:
-	"""Set custom radius for this explosion (for chain reactions)"""
 	max_radius = radius
 
 func set_chain_generation(generation: int) -> void:
-	"""Set the generation of this chain reaction"""
 	chain_generation = generation
+	if generation > 0:
+		growth_rate = 26.0
 
 func _process(delta: float) -> void:
-	"""
-	Update explosion radius and phase
-	"""
 	match current_phase:
 		Phase.GROWING:
 			_process_growing(delta)
@@ -108,72 +128,50 @@ func _process(delta: float) -> void:
 		Phase.SHRINKING:
 			_process_shrinking(delta)
 
-# ============================================================================
-# PHASE LOGIC
-# ============================================================================
-
 func _process_growing(delta: float) -> void:
-	"""Expand explosion to max radius"""
 	current_radius += growth_rate * delta
-	
 	if current_radius >= max_radius:
 		current_radius = max_radius
 		current_phase = Phase.HOLDING
 		hold_timer = 0.0
-	
+		# MAGNETIC: expand hitbox during hold to pull in nearby missiles
+		if _behaviors.get("magnetic", false) and collision_shape.shape is SphereShape3D:
+			collision_shape.shape.radius = max_radius * 1.35
 	_update_visuals()
 
 func _process_holding(delta: float) -> void:
-	"""Hold at max radius for brief moment"""
 	hold_timer += delta
-	
 	if hold_timer >= hold_duration:
 		current_phase = Phase.SHRINKING
 
 func _process_shrinking(delta: float) -> void:
-	"""Shrink explosion back to zero"""
 	current_radius -= shrink_rate * delta
-	
 	if current_radius <= 0.0:
 		current_radius = 0.0
 		current_phase = Phase.INACTIVE
 		_return_to_pool()
-	
 	_update_visuals()
 
-# ============================================================================
-# VISUALS
-# ============================================================================
-
 func _update_visuals() -> void:
-	"""Scale mesh and collision shape to match current radius"""
-	# Scale visual mesh to match current radius exactly
-	# The mesh sphere has radius 1.0, so scale it by current_radius
 	visual_mesh.scale = Vector3.ONE * current_radius
-	
-	# Scale collision shape (sphere)
 	if collision_shape.shape is SphereShape3D:
 		collision_shape.shape.radius = current_radius
-	
-	# Color gradient: yellow -> orange -> red as it shrinks
 	var material = visual_mesh.get_surface_override_material(0)
 	if material:
-		var t = 1.0 - (current_radius / max_radius)  # 0 at max, 1 at zero
-		var color = Color.YELLOW.lerp(Color.ORANGE_RED, t)
+		var t = clamp(1.0 - (current_radius / max(max_radius, 0.01)), 0.0, 1.0)
+		var color = _get_behavior_color().lerp(Color.ORANGE_RED, t * 0.65)
 		material.albedo_color = color
-
-# ============================================================================
-# POOLING
-# ============================================================================
+		if material.has_property("emission_enabled"):
+			material.emission_enabled = (current_phase == Phase.HOLDING)
+			material.emission = _get_behavior_color()
+			material.emission_energy_multiplier = 1.8 if current_phase == Phase.HOLDING else 0.0
 
 func _enable_hitbox() -> void:
-	"""Enable hitbox monitoring (called deferred)"""
 	if hitbox:
 		hitbox.monitoring = true
 		hitbox.monitorable = true
 
 func _return_to_pool() -> void:
-	"""Deactivate and return to ProjectileManager pool (or queue free in sandbox)"""
 	var projectile_manager = get_node_or_null("/root/Main/ProjectileManager")
 	if projectile_manager:
 		projectile_manager.return_to_pool(self)

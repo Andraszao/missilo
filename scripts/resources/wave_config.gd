@@ -34,10 +34,19 @@ extends Resource
 # FUTURE EXPANSION HOOKS
 # ============================================================================
 
-# Future: Special wave modifiers
+# Special wave modifiers
 # Examples: "split_on_death", "shield_missiles", "cluster_spawn"
 @export var special_modifiers: Array[String] = []
 
-# Future: Target bias - prefer cities vs silos vs random
-# "random", "cities", "silos", "spread"
-@export var targeting_strategy: String = "random"
+# Target bias - prefer cities vs silos vs random
+# "spread" / "random" = random ground position
+# "city_hunter"       = prefer alive cities
+# "silo_hunter"       = prefer active player silos
+# "mixed"             = 50% city, 30% silo, 20% random
+@export var targeting_strategy: String = "spread"
+
+# Allowed missile types for this wave.
+# Weighted random picks from this list (armored/mirv are rarer).
+# Leave empty to use the wave-number-based legacy selection logic.
+# Examples: ["standard"], ["standard", "scout"], ["standard", "armored", "mirv"]
+@export var allowed_missile_types: Array[String] = []

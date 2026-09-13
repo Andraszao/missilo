@@ -7,9 +7,8 @@
 script = ExtResource("1")
 wave_number = 10
 missile_count = 60
-spawn_interval = 0.25
+spawn_interval = 0.13
 missile_data = ExtResource("2")
 speed_multiplier = 2.0
-special_modifiers = []
-targeting_strategy = "random"
-
+special_modifiers = PackedStringArray("standard", "scout", "armored", "mirv")
+targeting_strategy = "mixed"

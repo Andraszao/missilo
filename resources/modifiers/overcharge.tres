@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MissileModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+modifier_name = "Overcharge"
+description = "+80% speed, +80% radius\nHigh risk, high reward"
+category = "Stat"
+speed_multiplier = 1.8
+radius_multiplier = 1.8
+ammo_addition = 0
+behavior_flag = ""
+behavior_params = "{}"

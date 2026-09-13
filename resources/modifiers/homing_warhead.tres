@@ -1,0 +1,20 @@
+[gd_resource type="MissileModifier" script_class="MissileModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/missile_modifier.gd" id="1_homingw"]
+
+[resource]
+script = ExtResource("1_homingw")
+modifier_name = "Homing Warhead"
+description = "Missile self-corrects mid-flight toward the nearest incoming threat. Pairs powerfully with Split."
+category = "Behavior"
+speed_multiplier = 1.0
+radius_multiplier = 1.0
+ammo_addition = 0
+behavior_flag = ""
+behavior_params = "{}"
+homing_strength = 0.65
+split_count = 1
+chain_depth = 0
+pulse_count = 1
+magnetic = false
+amplify = false

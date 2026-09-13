@@ -10,6 +10,5 @@ missile_count = 15
 spawn_interval = 0.7
 missile_data = ExtResource("2")
 speed_multiplier = 1.1
-special_modifiers = []
-targeting_strategy = "random"
-
+special_modifiers = PackedStringArray("standard")
+targeting_strategy = "spread"
