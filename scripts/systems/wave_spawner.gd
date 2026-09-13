@@ -92,15 +92,18 @@ func start_wave(wave_number: int) -> void:
 		push_error("Failed to load wave config: %s" % config_path)
 		return
 
-	# Apply difficulty scaling
+	# Apply difficulty scaling: missile count and spawn interval via _apply_difficulty(),
+	# enemy speed via a separate per-difficulty multiplier table.
 	var diff: int = GameManager.difficulty
-	var count_mult_table: Array = [0.65, 1.0, 1.2]
-	var speed_mult_table: Array = [0.8,  1.0, 1.1]
-	var count_mult: float = count_mult_table[diff]
-	var speed_mult: float  = speed_mult_table[diff]
+	var speed_mult_table: Array = [0.8, 1.0, 1.1]
+	var speed_mult: float = speed_mult_table[diff]
 
-	_effective_missile_count = max(1, roundi(current_wave_config.missile_count * count_mult))
-	_effective_speed_mult    = current_wave_config.speed_multiplier * speed_mult
+	var diff_result: Array = _apply_difficulty(
+			current_wave_config.missile_count,
+			current_wave_config.spawn_interval)
+	_effective_missile_count = max(1, diff_result[0])
+	var effective_spawn_interval: float = diff_result[1]
+	_effective_speed_mult = current_wave_config.speed_multiplier * speed_mult
 
 	# Easy difficulty: signal SiloManager to perform a full ammo reload
 	if diff == 0:
@@ -111,20 +114,33 @@ func start_wave(wave_number: int) -> void:
 	enemies_remaining = _effective_missile_count
 	is_spawning = true
 
-	print("Starting wave %d: %d missiles (x%.2f) at speed x%.2f, strategy=%s" % [
+	print("Starting wave %d: %d missiles at speed x%.2f (spawn interval %.2fs), strategy=%s" % [
 		wave_number,
 		_effective_missile_count,
-		count_mult,
 		_effective_speed_mult,
+		effective_spawn_interval,
 		current_wave_config.targeting_strategy
 	])
 
-	# Start spawn timer
-	spawn_timer.wait_time = current_wave_config.spawn_interval
+	# Start spawn timer using difficulty-scaled interval
+	spawn_timer.wait_time = effective_spawn_interval
 	spawn_timer.start()
 
 	# Spawn first enemy immediately
 	spawn_enemy()
+
+func _apply_difficulty(missile_count: int, spawn_interval: float) -> Array:
+	"""Return [scaled_missile_count, scaled_spawn_interval] for the current difficulty.
+	   Easy  (0): fewer missiles, slower spawning  -> easier pressure.
+	   Normal (1): config values unchanged.
+	   Hard  (2): more missiles, faster spawning   -> harder pressure."""
+	match GameManager.difficulty:
+		0:  # Easy
+			return [int(missile_count * 0.65), spawn_interval * 1.35]
+		2:  # Hard
+			return [int(missile_count * 1.40), spawn_interval * 0.72]
+		_:  # Normal (default)
+			return [missile_count, spawn_interval]
 
 func _pick_missile_data(wave: int) -> MissileData:
 	"""Roll for enemy type based on current wave number (legacy wave-bracket logic)"""

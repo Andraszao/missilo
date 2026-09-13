@@ -3,8 +3,8 @@ extends Node
 #
 # Responsibilities:
 # - Track mouse position in 3D world space (raycast to ground plane)
-# - Handle silo selection (A/W/D keys)
-# - Handle firing (mouse click)
+# - Handle silo selection (A/W/D keys or touch swipe)
+# - Handle firing (mouse click or screen tap)
 # - Validate firing (selected silo has ammo and is active)
 #
 # Design Note:
@@ -58,7 +58,23 @@ func _input(event: InputEvent) -> void:
 	# Only process input during PLAYING state
 	if GameManager.game_state != GameManager.GameState.PLAYING:
 		return
-	
+
+	# Touch: single tap fires at tap world position
+	if event is InputEventScreenTouch and event.pressed:
+		var tap_pos = _screen_to_world(event.position)
+		if tap_pos != Vector3.ZERO:
+			EventBus.silo_fired.emit(selected_silo_index, tap_pos)
+		return
+
+	# Touch: swipe left/right selects silo
+	if event is InputEventScreenDrag:
+		if abs(event.relative.x) > 30.0:
+			if event.relative.x > 0:
+				_select_next_silo(1)   # swipe right = next silo
+			else:
+				_select_next_silo(-1)  # swipe left = prev silo
+		return
+
 	# Silo selection (A/W/D keys)
 	if event.is_action_pressed("select_silo_left"):
 		handle_silo_selection(0)
@@ -133,6 +149,25 @@ func cache_silo_references() -> void:
 			silos.append(child)
 	
 	silos.sort_custom(func(a, b): return a.silo_index < b.silo_index)
+
+# ============================================================================
+# TOUCH HELPERS
+# ============================================================================
+
+func _screen_to_world(screen_pos: Vector2) -> Vector3:
+	"""Convert a screen position to a 3D world position on the gameplay plane (Z=0)"""
+	if camera == null: return Vector3.ZERO
+	var from = camera.project_ray_origin(screen_pos)
+	var dir  = camera.project_ray_normal(screen_pos)
+	var intersection = gameplay_plane.intersects_ray(from, dir)
+	if intersection == null: return Vector3.ZERO
+	return intersection
+
+func _select_next_silo(delta: int) -> void:
+	"""Cycle silo selection by delta steps, wrapping around the three silos"""
+	var new_idx = (selected_silo_index + delta + 3) % 3
+	selected_silo_index = new_idx
+	EventBus.silo_selected.emit(new_idx)
 
 # ============================================================================
 # SILO DESTROYED HANDLER
