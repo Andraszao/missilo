@@ -111,11 +111,12 @@ func start_wave(wave_number: int) -> void:
 	enemies_remaining = _effective_missile_count
 	is_spawning = true
 
-	print("Starting wave %d: %d missiles (x%.2f) at speed x%.2f" % [
+	print("Starting wave %d: %d missiles (x%.2f) at speed x%.2f, strategy=%s" % [
 		wave_number,
 		_effective_missile_count,
 		count_mult,
-		_effective_speed_mult
+		_effective_speed_mult,
+		current_wave_config.targeting_strategy
 	])
 
 	# Start spawn timer
@@ -126,7 +127,7 @@ func start_wave(wave_number: int) -> void:
 	spawn_enemy()
 
 func _pick_missile_data(wave: int) -> MissileData:
-	"""Roll for enemy type based on current wave number"""
+	"""Roll for enemy type based on current wave number (legacy wave-bracket logic)"""
 	# First check if this spawn is a decoy (wave 6+)
 	var decoy_roll = randf()
 	var decoy_chance = 0.0
@@ -171,12 +172,11 @@ func spawn_enemy() -> void:
 	var random_x = randf_range(-35.0, 35.0)
 	var start_pos = Vector3(random_x, 42.0, 0)  # Just above visible area
 
-	# Calculate target position (ground level, random X - can hit anywhere)
-	var target_x = randf_range(-30.0, 30.0)
-	var target_pos = Vector3(target_x, 0, 0)  # Ground level
+	# Calculate target using wave's targeting strategy
+	var target_pos: Vector3 = _pick_target(current_wave_config.targeting_strategy)
 
-	# Pick missile type based on current wave
-	var chosen_data: MissileData = _pick_missile_data(GameManager.current_wave)
+	# Pick missile type using wave config (falls back to legacy logic when allowed_missile_types is empty)
+	var chosen_data: MissileData = _pick_missile_data_for_wave(current_wave_config)
 
 	# Spawn through ProjectileManager using difficulty-scaled speed
 	projectile_manager.spawn_incoming_missile(
@@ -205,6 +205,84 @@ func check_wave_complete() -> void:
 	if enemies_remaining <= 0 and not is_spawning:
 		print("Wave complete! All enemies handled.")
 		EventBus.wave_complete.emit()
+
+# ============================================================================
+# TARGETING STRATEGIES
+# ============================================================================
+
+func _pick_target(strategy: String) -> Vector3:
+	"""Return a target ground position based on the wave's targeting strategy"""
+	match strategy:
+		"city_hunter":
+			# Pick a random alive city
+			var cities = get_tree().get_nodes_in_group("city")
+			var alive = cities.filter(func(c): return c.is_alive)
+			if alive.is_empty():
+				return _pick_random_ground_pos()
+			return alive[randi() % alive.size()].global_position
+		"silo_hunter":
+			# Pick a random active player silo
+			var silos = get_tree().get_nodes_in_group("player_silo")
+			var active = silos.filter(func(s): return s.is_active)
+			if active.is_empty():
+				return _pick_random_ground_pos()
+			return active[randi() % active.size()].global_position + Vector3(0, 0.2, 0)
+		"mixed":
+			# 50% city, 30% silo, 20% random
+			var r = randf()
+			if r < 0.5:
+				return _pick_target("city_hunter")
+			elif r < 0.8:
+				return _pick_target("silo_hunter")
+			else:
+				return _pick_random_ground_pos()
+		_:  # "spread", "random", or any unknown value
+			return _pick_random_ground_pos()
+
+func _pick_random_ground_pos() -> Vector3:
+	"""Return a random ground-level target position (existing spread logic)"""
+	var target_x = randf_range(-30.0, 30.0)
+	return Vector3(target_x, 0, 0)
+
+# ============================================================================
+# MISSILE TYPE SELECTION (wave-config-driven)
+# ============================================================================
+
+func _pick_missile_data_for_wave(wave_config) -> MissileData:
+	"""Select missile type using wave_config.allowed_missile_types with weighted random.
+	Falls back to legacy wave-bracket logic when allowed_missile_types is empty."""
+	var allowed: Array = wave_config.allowed_missile_types if wave_config else []
+
+	# Empty list = use legacy per-wave-number bracket logic
+	if allowed.is_empty():
+		return _pick_missile_data(GameManager.current_wave)
+
+	# Weighted random selection (armored/mirv intentionally rare)
+	var weights: Dictionary = {"standard": 60, "scout": 25, "armored": 10, "mirv": 5}
+	var total: int = 0
+	for t in allowed:
+		total += weights.get(t, 10)
+	var roll: int = randi() % max(total, 1)
+	var acc: int = 0
+	for t in allowed:
+		acc += weights.get(t, 10)
+		if roll < acc:
+			return _load_missile_data(t)
+	return _load_missile_data("standard")
+
+func _load_missile_data(type_name: String) -> MissileData:
+	"""Load a MissileData resource by logical type name, with graceful fallback"""
+	var path: String = "res://resources/missiles/%s.tres" % type_name
+	if ResourceLoader.exists(path):
+		return load(path)
+	# Fallback to standard missile
+	var fallback: String = "res://resources/missiles/standard.tres"
+	if ResourceLoader.exists(fallback):
+		return load(fallback)
+	# Last resort: use the wave config's own missile_data
+	if current_wave_config and current_wave_config.missile_data:
+		return current_wave_config.missile_data
+	return null
 
 # ============================================================================
 # EVENT HANDLERS
