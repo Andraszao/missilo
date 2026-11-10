@@ -1,0 +1,722 @@
+<title>Missilo Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: the night sky is the page. Game stage left, director's notes rail right; stacks on phones. */
+:root{
+  color-scheme: dark;
+  --night:#070a1c;      /* page ground, deep indigo */
+  --panel:#0e1330;      /* raised surfaces */
+  --line:#262d5c;       /* hairlines, borders */
+  --ink:#e9ebff;        /* primary text */
+  --dim:#9aa1cf;        /* secondary text */
+  --lamp:#ffc66e;       /* sodium-lamp amber: the thing you protect */
+  --threat:#ff6b5e;     /* incoming */
+  --west:#62e6ff; --mid:#8dffc0; --east:#b5b8ff;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.mark{font-family:var(--display);font-weight:800;font-size:40px;line-height:1;letter-spacing:.04em;margin:0}
+.mark span{color:var(--lamp)}
+.tag{color:var(--dim);margin:0}
+.proto{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim);border:1px solid var(--line);padding:3px 8px;border-radius:3px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}.proto{margin-left:0}}
+.stagecol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.stage{position:relative;width:100%;aspect-ratio:16/10;max-width:100%;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--night);touch-action:none;user-select:none;-webkit-user-select:none}
+@media (max-width:820px){.stage{aspect-ratio:4/3}}
+@media (max-width:560px){.stage{aspect-ratio:3/4}}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage.nocursor canvas{cursor:none}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px;background:rgba(7,10,28,.78);overflow-y:auto;text-align:center}
+.ov h2{font-family:var(--display);font-weight:800;font-size:clamp(34px,7vw,64px);line-height:.95;letter-spacing:.03em;margin:0;text-wrap:balance}
+.ov h2 em{font-style:normal;color:var(--lamp)}
+.ov p{margin:0;max-width:52ch;color:var(--dim)}
+.ov p strong{color:var(--ink);font-weight:600}
+.keys{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:13px;color:var(--dim);max-width:560px}
+kbd{font-family:var(--mono);font-size:12px;color:var(--ink);border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:0 5px;background:var(--panel)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.go{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.08em;text-transform:uppercase;background:var(--lamp);color:#1b1206;border:0;border-radius:3px;padding:10px 26px}
+.go:hover{filter:brightness(1.08)}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:3px;padding:8px 14px;color:var(--ink)}
+.ghost:hover{border-color:var(--dim)}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+/* draft */
+.battery{font-family:var(--mono);font-size:12px;color:var(--dim);display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center}
+.battery b{font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%;max-width:760px}
+@media (max-width:620px){.cards{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:6px;text-align:left;min-width:0}
+.card .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.card .k i{font-style:normal;color:var(--lamp)}
+.card h3{font-family:var(--display);font-weight:800;font-size:24px;line-height:1;letter-spacing:.03em;margin:0}
+.card p{font-size:13px;line-height:1.4;color:var(--dim);flex:1;margin:0}
+.card .btns{display:flex;gap:6px}
+.card .btns button{flex:1;background:transparent;border:1px solid var(--line);border-radius:3px;padding:6px 4px;font-size:13px;font-weight:600}
+.card .btns button:hover{background:rgba(255,255,255,.06)}
+.card .btns button:disabled{opacity:.35;cursor:not-allowed}
+.stats{font-family:var(--mono);font-size:13px;color:var(--ink);display:grid;grid-template-columns:auto auto;gap:2px 18px;text-align:left;font-variant-numeric:tabular-nums}
+.stats span:nth-child(odd){color:var(--dim)}
+/* control bar */
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.bar button{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:8px 12px;font-size:13px}
+.bar button:hover{border-color:var(--dim)}
+#focusBtn{position:relative;overflow:hidden;flex:1 1 180px;text-align:left;font-weight:600}
+#focusBtn .fill{position:absolute;inset:0;width:0;background:linear-gradient(90deg,rgba(98,230,255,.16),rgba(98,230,255,.38));pointer-events:none}
+#focusBtn .lbl{position:relative}
+#focusBtn.ready{border-color:var(--west)}
+#focusBtn small{font-family:var(--mono);font-weight:400;color:var(--dim);margin-left:6px}
+/* notes rail */
+.notes{border:1px solid var(--line);border-radius:4px;background:var(--panel);display:flex;flex-direction:column;min-width:0}
+.notes .hd{padding:12px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.note{padding:14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)}
+.note h2{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;letter-spacing:.03em;margin:0;text-wrap:balance}
+.note dl{margin:0;display:flex;flex-direction:column;gap:10px}
+.note dt{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp)}
+.note dd{margin:2px 0 0;color:var(--ink);font-size:14px}
+.chapters{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column}
+.chapters button{width:100%;display:flex;gap:10px;align-items:baseline;background:transparent;border:0;border-radius:3px;padding:6px 8px;text-align:left;color:var(--dim);font-size:13px}
+.chapters button:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+.chapters button[aria-current="true"]{color:var(--ink);background:rgba(255,198,110,.1)}
+.chapters .tm{font-family:var(--mono);font-size:12px;width:64px;flex:none;color:var(--lamp)}
+.chapters .hint{padding:2px 8px 8px;font-size:12px;color:var(--dim)}
+/* below the fold */
+.plan h2{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.03em;line-height:1;margin:16px 0 4px}
+.plan>p{color:var(--dim);max-width:65ch;margin:0 0 14px}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+.cols section{padding:14px 18px 14px 0;min-width:0}
+.cols h3{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp);margin:0 0 8px;font-weight:600}
+.cols ul,.asks{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.cols li,.asks li{color:var(--ink)}
+.cols li span,.asks li span{color:var(--dim)}
+.asks{max-width:70ch}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1 class="mark">MISSIL<span>O</span></h1>
+    <p class="tag">Keep the lights on until dawn.</p>
+    <span class="proto">playable prototype · design walkthrough</span>
+  </header>
+
+  <div class="main">
+    <div class="stagecol">
+      <div class="stage" id="stage">
+        <canvas id="game" aria-label="Missilo game field"></canvas>
+
+        <div class="ov" id="ovTitle">
+          <h2>Six districts.<br>Three silos.<br><em>Six hours to dawn.</em></h2>
+          <p>Each interceptor bursts where you aim it. Anything caught in the burst goes off too, and that blast can catch the next one. <strong>You can't shoot everything. You have to chain.</strong></p>
+          <button class="go" id="startBtn">Start the watch</button>
+          <div class="keys">
+            <span><kbd>Click</kbd> / tap: nearest silo fires</span>
+            <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> fire West, Mid, East</span>
+            <span><kbd>Space</kbd> Focus</span>
+            <span><kbd>P</kbd> pause</span>
+          </div>
+        </div>
+
+        <div class="ov" id="ovDraft" hidden>
+          <h2 id="draftHead">Resupply</h2>
+          <p>Pick one. Silo mods go on the silo you choose and stay there for the night.</p>
+          <div class="battery" id="battery"></div>
+          <div class="cards" id="cards"></div>
+        </div>
+
+        <div class="ov" id="ovEnd" hidden>
+          <h2 id="endHead"></h2>
+          <p id="endSub"></p>
+          <div class="stats" id="endStats"></div>
+          <div class="row" id="endBtns"></div>
+        </div>
+
+        <div class="ov" id="ovPause" hidden>
+          <h2>Paused</h2>
+          <button class="go" id="resumeBtn">Resume</button>
+        </div>
+      </div>
+
+      <div class="bar">
+        <button id="focusBtn" title="Slow the sky for five seconds. Charged by chains."><span class="fill" id="focusFill"></span><span class="lbl">Focus <small id="focusPct">0%</small></span></button>
+        <button id="pauseBtn">Pause</button>
+        <button id="muteBtn">Sound: on</button>
+        <button id="skipBtn" title="Walkthrough shortcut: end this hour now">Skip hour</button>
+      </div>
+    </div>
+
+    <aside class="notes" aria-label="Director's notes">
+      <div class="hd">Director's notes · follows the game</div>
+      <div class="note" id="note" aria-live="polite"></div>
+      <ol class="chapters" id="chapters"></ol>
+    </aside>
+  </div>
+
+  <section class="plan">
+    <h2>From the demo to the rebuild</h2>
+    <p>The Godot demo is a clean arcade homage with good bones: event bus, pooled projectiles, data-driven waves and a modifier system that nothing uses yet. This prototype is the experience I'd build on those ideas, with its own identity.</p>
+    <div class="cols">
+      <section>
+        <h3>Kept from the demo</h3>
+        <ul>
+          <li>Aim, fly, burst. <span>The interceptor still detonates where you pointed, after a flight you have to lead.</span></li>
+          <li>Three silos, six things to protect. <span>Same counts, same loss condition.</span></li>
+          <li>Chain reactions with shrinking generations. <span>Same idea as <code>incoming_missile.gd</code>, tuned to carry further.</span></li>
+          <li>Speed Boost, Blast Radius, Extra Ammo. <span>The three <code>.tres</code> modifiers, now one per starting silo.</span></li>
+          <li>Per-hour ammo with a refill between waves.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Changed</h3>
+        <ul>
+          <li>One input per shot. <span>Click fires the nearest silo; A, S, D fire a chosen one. No select-then-click.</span></li>
+          <li>Chains are the score, the sound and the meter. <span>In the demo they were a side effect.</span></li>
+          <li>Waves are volleys with shapes. <span>The demo spawned on a metronome at random x.</span></li>
+          <li>Four threat types instead of one. <span>Each asks a different question.</span></li>
+          <li>A draft after every hour. <span>The unused <code>behavior_flag</code> hook becomes Twin Rail, Aftershock, Recycler.</span></li>
+          <li>A hit silo is out for the hour, not the run. <span>Losing one in wave 2 no longer decides wave 10.</span></li>
+          <li>A night with a dawn. <span>Sky, moon and clock replace "Wave 7".</span></li>
+        </ul>
+      </section>
+      <section>
+        <h3>Not in this prototype</h3>
+        <ul>
+          <li>Longer nights and route choice. <span>Pick the next hour's threat mix for a better reward.</span></li>
+          <li>A final-hour set piece. <span>One large target that sheds chain fuel.</span></li>
+          <li>Twenty-plus mods with synergies and rarities.</li>
+          <li>Between-night unlocks: <span>new starting batteries, new valleys.</span></li>
+          <li>Real art, music that layers with chain depth, controller support, saves.</li>
+        </ul>
+      </section>
+    </div>
+    <h2>What I need from you</h2>
+    <ol class="asks">
+      <li>Does this direction feel right? <span>Chain-first, build-per-silo, one night per run.</span></li>
+      <li>Engine for the real build. <span>I'd stay on Godot 4.5 with a 2D renderer; the demo's 3D scene adds cost and no gameplay. Web-first in TypeScript is the other sensible option.</span></li>
+      <li>Target platform. <span>The prototype already plays by touch; a phone-first build changes HUD and pacing choices.</span></li>
+      <li>Run length. <span>Six hours here takes about five minutes. A full game probably wants ten to twelve.</span></li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), cv = $('#game'), ctx = cv.getContext('2d');
+const W = 1000; let H = 625, S = 1, K = 1, U = 1;
+const rnd = (a,b) => a + Math.random()*(b-a), clamp = (v,a,b) => Math.max(a, Math.min(b,v)), lerp = (a,b,t) => a+(b-a)*t;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- data ---------- */
+const SILO_DEF = [
+  {name:'West', key:'A', x:120, color:'#62e6ff', start:'fast'},
+  {name:'Mid',  key:'S', x:500, color:'#8dffc0', start:'wide'},
+  {name:'East', key:'D', x:880, color:'#b5b8ff', start:'ammo'},
+];
+const DIST_X = [215,310,405,595,690,785];
+const TTG = [12,11,10,9.2,8.6,8];           // seconds for a streak to reach the ground, per hour
+const CHAIN_R = [44,34,27,22];              // chain blast radius by generation (demo: 2.5/1.5/1.0/0.8 of 3.0)
+const HOURS = [
+  {clock:'00:00', name:'First watch', brief:'Streaks fall in volleys. Catch them bunched and one blast carries through the rest.',
+   script:[[1.5,'fan',3],[7,'fan',3],[12.5,'conv',3],[18,'fan',4],[23,'fan',4]]},
+  {clock:'01:00', name:'Splitters', brief:'Violet splitters break into three partway down. Hit them high.',
+   script:[[1.5,'fan',3],[5,'split',1],[9,'fan',4],[14,'conv',3],[18,'split',2],[23,'fan',4],[27,'split',1]]},
+  {clock:'02:00', name:'Darts', brief:'White darts are fast and aimed at your silos. A silo that gets hit is out for the hour.',
+   script:[[1.5,'fan',4],[5,'dart',2],[8,'split',1],[11,'fan',4],[14,'dart',1],[17,'conv',4],[21,'split',1],[21.5,'dart',2],[25,'fan',5]]},
+  {clock:'03:00', name:'Carriers', brief:'Carriers take two hits, then go up in the biggest blast in the sky. Use them.',
+   script:[[1.5,'heavy',4],[8,'dart',2],[11,'split',2],[15,'heavy',5],[20,'conv',4],[23,'dart',2],[26,'heavy',4],[30,'fan',4]]},
+  {clock:'04:00', name:'The long hour', brief:'Everything at once, and faster. You will run dry unless the chains do the work.',
+   script:[[1.5,'fan',5],[4,'dart',2],[7,'heavy',5],[11,'split',2],[14,'conv',5],[17,'dart',3],[20,'fan',5],[23,'heavy',4],[27,'split',2],[30,'conv',4]]},
+  {clock:'05:00', name:'Last hour', brief:'Hold until the sky turns.',
+   script:[[1.5,'heavy',5],[5,'fan',5],[8,'dart',3],[11,'split',3],[15,'conv',5],[18,'heavy',5],[22,'dart',3],[25,'fan',6],[28,'split',2],[32,'conv',5],[35,'heavy',6]]},
+];
+const SKY = [ // [top, horizon] per hour, last entry is dawn
+  [[7,10,30],[20,26,62]], [[8,11,34],[24,29,70]], [[9,13,38],[30,33,80]], [[11,17,46],[44,42,94]],
+  [[15,24,60],[78,58,112]], [[24,40,84],[142,92,122]], [[70,108,160],[255,184,140]],
+];
+const CARDS = {
+  wide:   {name:'Wide Charge',  scope:'silo', demo:true, desc:'+30% blast radius. Stacks.'},
+  fast:   {name:'Hot Motor',    scope:'silo', demo:true, desc:'+50% interceptor speed. Stacks.'},
+  ammo:   {name:'Deep Magazine',scope:'silo', demo:true, desc:'+3 interceptors every hour. Stacks.'},
+  twin:   {name:'Twin Rail',    scope:'silo', uniq:true, desc:'Every shot launches a pair that bursts either side of your aim. Costs one interceptor.'},
+  after:  {name:'Aftershock',   scope:'silo', uniq:true, desc:'Each blast pulses a second time at 70% size.'},
+  linger: {name:'Slow Burn',    scope:'silo', desc:'Blasts hang in the air twice as long. Stacks.'},
+  recycle:{name:'Recycler',     scope:'silo', uniq:true, desc:'A chain of 3 or more started by this silo returns one interceptor.'},
+  reactor:{name:'Chain Reactor',scope:'all',  desc:'Every chain blast is 20% larger. Stacks.'},
+  cap:    {name:'Capacitor',    scope:'all',  desc:'Focus charges 50% faster. Stacks.'},
+  relight:{name:'Relight',      scope:'all',  desc:'Bring one dark district back.'},
+};
+const NOTES = {
+  pitch:{tm:'pitch', title:'A night shift, not a high-score loop',
+    now:'Six districts, three silos, six hours until dawn. Every hour the sky gets worse and your battery gets stranger. One run is one night.',
+    demo:'Aim-and-burst interception, three silos, six cities, chain reactions and three stat modifiers all come straight from the Godot project.',
+    next:'The demo calls itself an MVP of a 1980 arcade game. The rebuild keeps the hand feel and builds its own game on top: a night to survive, a battery to grow, chaining as the core skill.'},
+  h0:{tm:'00:00', title:'One verb, done properly',
+    now:'Click and the nearest silo fires. A, S, D pick a silo. The ring at your cursor is the blast you will get, in that silo\'s colour. Each kill in a chain scores more and plays a higher note.',
+    demo:'The demo needed two inputs per shot (select, then click) and its chains happened silently. Volleys now arrive bunched and fan out, so the early shot chains best but takes longest to land.',
+    next:'This loop is where the rebuild spends its polish budget: launch feel, blast timing, chain audio. Everything else hangs off it.'},
+  draft:{tm:'resupply', title:'Three silos, three characters',
+    now:'After each hour you take one card. Silo mods go on one silo only, so West, Mid and East drift apart: a fast sniper, a wide mortar, a deep magazine.',
+    demo:'<code>MissileModifier</code> and <code>silo.add_modifier()</code> already exist but only the sandbox scene calls them. The three starting traits are the demo\'s three <code>.tres</code> files.',
+    next:'The real game wants twenty or more mods with pairings worth chasing, such as Twin Rail with Aftershock, plus rarities and a reroll paid for with chain salvage.'},
+  h1:{tm:'01:00', title:'Splitters ask "how early?"',
+    now:'A violet splitter becomes three streaks around mid-sky. Kill it high and it costs one shot. Wait, and the three children are a ready-made chain.',
+    demo:'<code>WaveConfig.special_modifiers</code> lists "split_on_death" as a future hook. This is that hook, made into a threat you can read at a glance.',
+    next:'Every new threat should teach by its silhouette and its first appearance, with one line of briefing and no tutorial screens.'},
+  h2:{tm:'02:00', title:'Darts go for the hands',
+    now:'White darts are fast and aimed at silos. A silo that takes a hit is offline until the next hour, with whatever build you put on it.',
+    demo:'In the demo a destroyed silo is gone for the run, which turns one early mistake into a slow loss. Here it costs you the hour.',
+    next:'Darts make silo choice matter under pressure: the Hot Motor silo is your dart answer. Later hours can target your best-built silo on purpose.'},
+  h3:{tm:'03:00', title:'Enemies as ammunition',
+    now:'A carrier soaks two hits, then goes up in the largest blast in the game. It arrives with an escort. Crack it early, finish it when the escort is close.',
+    demo:'<code>MissileData</code> already has <code>health</code> and <code>impact_radius</code> fields that nothing reads. This is what they are for.',
+    next:'This is the idea I would push hardest: threats that are also tools. A good player should end the night having fired fewer shots, not more.'},
+  h4:{tm:'04:00', title:'Focus is the reward for chaining',
+    now:'Chains charge Focus. Press Space and the sky runs at a third speed for five seconds while your interceptors fly at full speed.',
+    demo:'Nothing like this exists in the demo. Its difficulty curve is only count, interval and speed, so late waves are the same game played faster.',
+    next:'By this hour you have more targets than interceptors. The intended arc is that the opening hours teach chaining and the closing hours require it.'},
+  h5:{tm:'05:00', title:'The last hour',
+    now:'The longest script, every threat type, and the horizon starting to warm. The moon has nearly set. It has been your progress bar all night.',
+    demo:'The demo ends at wave 10 with a console line. There is no build-up and no release.',
+    next:'The full game puts a set piece here: one large target that sheds chain fuel as it comes apart, different each night.'},
+  dawn:{tm:'06:00', title:'Dawn',
+    now:'The sky turns, the count comes in: districts still lit, best chain, shots fired. Fewer shots for the same result is the mark of a good night.',
+    demo:'Score in the demo was 25 per kill plus a flat end-of-wave bonus.',
+    next:'Between nights: unlock new starting batteries and new valleys with different layouts. The section below this one lists what I would build next and what I need from you.'},
+};
+const CHAPTER_ORDER = ['pitch','h0','draft','h1','h2','h3','h4','h5','dawn'];
+
+/* ---------- state ---------- */
+const g = {state:'title', hour:0, score:0, time:0, waveT:0, waveLen:30, queue:[], enemies:[], missiles:[], blasts:[], parts:[], floats:[],
+  focus:0, focusT:0, shake:0, flash:0, lock:-1, mx:500, my:250, mouse:false, paused:false, reactor:0, cap:0, bestChain:0, kills:0, shots:0,
+  introT:0, tallyT:0, tally:null, dawnT:0, lostT:0, chainMsg:null, eid:0, note:'pitch'};
+let silos = [], dists = [], stars = [], ridge = [];
+
+function groundY(x){
+  let y = H - 46 + 5*Math.sin(x/61) + 3*Math.sin(x/23+1);
+  for (const d of SILO_DEF) y -= 36*Math.exp(-(((x-d.x)/80)**2));
+  return y;
+}
+function makeDistrict(x,i){
+  const b = []; let dx = -34;
+  while (dx < 30){ const w = rnd(10,17), h = rnd(16,46); const cols = Math.max(1,Math.floor(w/5)), rows = Math.floor(h/7);
+    const win = []; for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) win.push(Math.random()<.72);
+    b.push({dx,w,h,cols,rows,win}); dx += w+1.5; }
+  return {x,i,alive:true,b,glow:0};
+}
+function newRun(){
+  silos = SILO_DEF.map((d,i) => ({...d,i,mods:{wide:0,fast:0,ammo:0,linger:0,twin:false,after:false,recycle:false},ammo:0,online:true,recoil:0}));
+  silos.forEach(s => s.mods[s.start] = 1);
+  dists = DIST_X.map(makeDistrict);
+  Object.assign(g,{hour:0,score:0,focus:0,focusT:0,reactor:0,cap:0,bestChain:0,kills:0,shots:0,lock:-1});
+}
+const maxAmmo = s => 10 + 3*s.mods.ammo;
+const siloTop = s => ({x:s.x, y:groundY(s.x)-16});
+const siloStats = s => ({speed:560*S*Math.pow(1.5,s.mods.fast), radius:48*Math.pow(1.3,s.mods.wide)});
+
+/* ---------- audio ---------- */
+let ac = null, master = null, muted = false;
+function audioInit(){ if (ac) { if (ac.state==='suspended') ac.resume(); return; }
+  try { ac = new (window.AudioContext||window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = .5; master.connect(ac.destination); } catch(e){ ac = null; } }
+function tone(f, d, type, v, to){ if (!ac || muted) return; const t = ac.currentTime, o = ac.createOscillator(), a = ac.createGain();
+  o.type = type||'sine'; o.frequency.setValueAtTime(f,t); if (to) o.frequency.exponentialRampToValueAtTime(to,t+d);
+  a.gain.setValueAtTime(v||.2,t); a.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(a); a.connect(master); o.start(t); o.stop(t+d+.02); }
+let noiseBuf = null;
+function noise(d, v, fc, to){ if (!ac || muted) return; if (!noiseBuf){ noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const ch = noiseBuf.getChannelData(0); for (let i=0;i<ch.length;i++) ch[i] = Math.random()*2-1; }
+  const t = ac.currentTime, n = ac.createBufferSource(), f = ac.createBiquadFilter(), a = ac.createGain(); n.buffer = noiseBuf; f.type='lowpass'; f.frequency.setValueAtTime(fc,t); if (to) f.frequency.exponentialRampToValueAtTime(to,t+d);
+  a.gain.setValueAtTime(v,t); a.gain.exponentialRampToValueAtTime(.001,t+d); n.connect(f); f.connect(a); a.connect(master); n.start(t); n.stop(t+d+.02); }
+const PENTA = [0,3,5,7,10];
+const sfx = {
+  launch(){ noise(.25,.12,2400,500); tone(520,.12,'triangle',.05,260); },
+  burst(){ tone(150,.3,'sine',.22,45); noise(.22,.14,900,200); },
+  kill(n){ const i = Math.min(n-1,14); tone(330*Math.pow(2,(PENTA[i%5]+12*Math.floor(i/5))/12),.32,'triangle',.16); noise(.12,.07,1600,400); },
+  impact(){ tone(90,.6,'sine',.35,30); noise(.5,.25,600,80); },
+  dark(){ tone(300,.7,'sawtooth',.08,70); },
+  empty(){ tone(140,.06,'square',.05); },
+  pick(){ tone(660,.12,'triangle',.14); setTimeout(() => tone(990,.2,'triangle',.12),90); },
+  focus(){ noise(.6,.12,300,3000); tone(220,.5,'sine',.1,880); },
+  crack(){ tone(700,.1,'square',.06,300); },
+  hour(){ tone(392,.5,'sine',.1); setTimeout(() => tone(523,.7,'sine',.1),200); },
+};
+
+/* ---------- spawning ---------- */
+function pickTarget(type){
+  const live = dists.filter(d => d.alive), on = silos.filter(s => s.online);
+  if (type==='dart' && on.length) return on[Math.random()*on.length|0].x + rnd(-6,6);
+  const r = Math.random();
+  if (r < .7 && live.length) return live[Math.random()*live.length|0].x + rnd(-22,22);
+  if (r < .86 && on.length) return on[Math.random()*on.length|0].x + rnd(-8,8);
+  return rnd(60,940);
+}
+function buildQueue(h){
+  const q = [];
+  for (const [t,kind,n] of HOURS[h].script){
+    if (kind==='fan'){ const cx = rnd(150,850); for (let i=0;i<n;i++) q.push({t:t+i*.25,type:'streak',x0:cx+rnd(-40,40)}); }
+    else if (kind==='conv'){ const tx = pickTarget('streak'); for (let i=0;i<n;i++) q.push({t:t+i*.3,type:'streak',x0:rnd(80,920),tx:tx+rnd(-10,10)}); }
+    else if (kind==='split'){ for (let i=0;i<n;i++) q.push({t:t+i*.7,type:'split',x0:rnd(150,850)}); }
+    else if (kind==='dart'){ for (let i=0;i<n;i++) q.push({t:t+i*.55,type:'dart',x0:rnd(100,900)}); }
+    else if (kind==='heavy'){ const cx = rnd(220,780), tx = pickTarget('streak'); q.push({t,type:'heavy',x0:cx,tx});
+      for (let i=1;i<n;i++) q.push({t:t+1.6+i*.3,type:'streak',x0:cx+rnd(-70,70),tx:tx+rnd(-90,90)}); }
+  }
+  q.sort((a,b) => a.t-b.t); return q;
+}
+const TYPE = {streak:{m:1,hp:1,pts:25,col:'#ff6b5e'}, split:{m:.8,hp:1,pts:40,col:'#c58bff'}, dart:{m:1.9,hp:1,pts:50,col:'#ffffff'}, heavy:{m:.62,hp:2,pts:100,col:'#ffae42'}};
+function spawnEnemy(type, x0, y0, tx, speedMul){
+  tx = clamp(tx == null ? pickTarget(type) : tx, 30, 970);
+  const ty = groundY(tx), dx = tx-x0, dy = ty-y0, dist = Math.hypot(dx,dy), def = TYPE[type];
+  const sp = (H+10)/TTG[g.hour] * def.m * (speedMul||1) * Math.max(1, dist/(H+10));
+  g.enemies.push({id:++g.eid,type,x:x0,y:y0,sx:x0,sy:y0,tx,ty,vx:dx/dist*sp,vy:dy/dist*sp,hp:def.hp,splitY:H*rnd(.34,.48),flash:0});
+}
+
+/* ---------- actions ---------- */
+function bestSilo(x,y){
+  let best = null, bt = 1e9;
+  for (const s of silos){ if (!s.online || s.ammo<=0) continue; const p = siloTop(s), t = Math.hypot(x-p.x,y-p.y)/siloStats(s).speed*(1.3-.3*s.ammo/maxAmmo(s)); if (t<bt){ bt=t; best=s; } }
+  return best;
+}
+function aimSilo(){ const l = silos[g.lock]; return (l && l.online && l.ammo>0) ? l : bestSilo(g.mx,g.my); }
+function fire(s, x, y){
+  if (g.state!=='play' || g.paused) return;
+  x = clamp(x,10,990); y = clamp(y, 30, groundY(x)-26);
+  if (!s){ const l = silos[g.lock]; s = (l && l.online && l.ammo>0) ? l : bestSilo(x,y); }
+  if (!s || !s.online || s.ammo<=0){ sfx.empty(); g.floats.push({x,y,text:s&&!s.online?'OFFLINE':'EMPTY',life:.7,max:.7,col:'#9aa1cf',size:16}); return; }
+  s.ammo--; s.recoil = 1; g.shots++;
+  const st = siloStats(s), p = siloTop(s), chain = {count:0,live:0,silo:s};
+  const pts = s.mods.twin ? [[x-st.radius*.8,y],[x+st.radius*.8,y]] : [[x,y]];
+  for (const [tx,ty0] of pts){ const txc = clamp(tx,10,990), ty = Math.min(ty0, groundY(txc)-20); chain.live++;
+    g.missiles.push({x:p.x,y:p.y,sx:p.x,sy:p.y,tx:txc,ty,speed:st.speed,silo:s,radius:st.radius,chain}); }
+  sfx.launch();
+}
+function addBlast(x,y,max,gen,chain,col,opt){
+  const b = Object.assign({x,y,max,gen,chain,col,t:0,delay:0,hold:.4,pulses:0,hit:new Set(),r:0,harmless:false,done:false}, opt||{});
+  g.blasts.push(b); return b;
+}
+function sparks(x,y,n,col,sp){ if (g.parts.length>500) return; for (let i=0;i<n;i++){ const a = rnd(0,6.283), v = rnd(.2,1)*sp; g.parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-sp*.2,life:rnd(.3,.8),max:.8,col}); } }
+function killEnemy(e, b){
+  const def = TYPE[e.type], ch = b.chain;
+  if (e.hp>1){ e.hp--; e.flash = 1; sfx.crack(); g.floats.push({x:e.x,y:e.y-14,text:'CRACKED',life:.8,max:.8,col:def.col,size:13}); return false; }
+  ch.count++; g.kills++;
+  const pts = def.pts*ch.count; g.score += pts;
+  g.floats.push({x:e.x,y:e.y-10,text:'+'+pts,life:.9,max:.9,col:ch.count>2?'#ffc66e':'#e9ebff',size:12+Math.min(ch.count,8)*1.5});
+  if (ch.count>1) g.focus = Math.min(100, g.focus + 2.2*(ch.count-1)*(1+.5*g.cap));
+  const gen = b.gen+1, heavy = e.type==='heavy';
+  const r = (heavy ? 92 : CHAIN_R[Math.min(gen-1,3)]) * (1+.2*g.reactor);
+  ch.live++;
+  addBlast(e.x,e.y,r,gen,ch,heavy?'#ffae42':(gen>1?'#ff9a4d':'#ffd76e'),{delay:.07,hold:heavy?.55:.32});
+  sparks(e.x,e.y,heavy?26:10,def.col,160);
+  sfx.kill(ch.count); if (heavy){ g.shake = Math.max(g.shake,10); sfx.impact(); }
+  if (ch.count>=4) g.shake = Math.max(g.shake, Math.min(ch.count,9));
+  return true;
+}
+function endChain(ch){
+  if (ch.count > g.bestChain) g.bestChain = ch.count;
+  if (ch.count>=3){ g.chainMsg = {n:ch.count,t:0,col:ch.silo.color};
+    if (ch.silo.mods.recycle && ch.silo.online && ch.silo.ammo<maxAmmo(ch.silo)){ ch.silo.ammo++; const p = siloTop(ch.silo); g.floats.push({x:p.x,y:p.y-24,text:'+1',life:1,max:1,col:ch.silo.color,size:16}); } }
+}
+function impact(e){
+  addBlast(e.x,e.y,30,0,{count:0,live:1,silo:silos[0]},'#ff6b5e',{harmless:true,hold:.25});
+  sparks(e.x,e.y,16,'#ff6b5e',200); sfx.impact(); g.shake = Math.max(g.shake,9);
+  for (const d of dists) if (d.alive && Math.abs(e.x-d.x)<44){ d.alive = false; g.flash = .5; sfx.dark(); sparks(d.x,groundY(d.x)-20,30,'#ffc66e',220);
+    g.floats.push({x:d.x,y:groundY(d.x)-60,text:'DISTRICT DARK',life:1.6,max:1.6,col:'#ff6b5e',size:15}); }
+  for (const s of silos) if (s.online && Math.abs(e.x-s.x)<24){ s.online = false; if (g.lock===s.i) g.lock = -1; g.floats.push({x:s.x,y:groundY(s.x)-56,text:s.name.toUpperCase()+' OFFLINE',life:1.6,max:1.6,col:'#ff6b5e',size:15}); }
+  if (!dists.some(d => d.alive) && g.state==='play'){ g.state = 'lost'; g.lostT = 0; }
+}
+function useFocus(){ if (g.state!=='play' || g.paused || g.focus<100 || g.focusT>0) return; g.focus = 0; g.focusT = 5; sfx.focus(); }
+
+/* ---------- flow ---------- */
+function clearField(){ g.queue = []; g.enemies = []; g.missiles = []; g.blasts = []; g.floats = []; g.chainMsg = null; g.focusT = 0; }
+function startHour(h){
+  clearField(); g.hour = h; g.state = 'intro'; g.introT = 0; g.waveT = 0;
+  silos.forEach(s => { s.online = true; s.ammo = maxAmmo(s); });
+  g.queue = buildQueue(h); g.waveLen = g.queue[g.queue.length-1].t + TTG[h];
+  hideOverlays(); setNote('h'+h); sfx.hour();
+}
+function hourCleared(){
+  const lit = dists.filter(d => d.alive).length, spare = silos.reduce((a,s) => a + (s.online?s.ammo:0), 0);
+  g.tally = {lit,spare,bonus:lit*100+spare*5}; g.score += g.tally.bonus; g.state = 'clear'; g.tallyT = 0; g.focusT = 0;
+}
+function hideOverlays(){ for (const id of ['ovTitle','ovDraft','ovEnd','ovPause']) $('#'+id).hidden = true; }
+function batteryLine(){
+  $('#battery').innerHTML = silos.map(s => { const m = s.mods, a = [];
+    for (const k of ['fast','wide','ammo','linger']) if (m[k]) a.push(CARDS[k].name + (m[k]>1?' ×'+m[k]:''));
+    for (const k of ['twin','after','recycle']) if (m[k]) a.push(CARDS[k].name);
+    return `<span><b style="color:${s.color}">${s.name}</b> ${a.join(', ')}</span>`; }).join('');
+}
+function openDraft(){
+  g.state = 'draft'; setNote('draft'); hideOverlays();
+  $('#draftHead').textContent = HOURS[g.hour].clock + ' held. Resupply.';
+  batteryLine();
+  let pool = Object.keys(CARDS).filter(k => { const c = CARDS[k];
+    if (k==='relight') return dists.some(d => !d.alive);
+    if (c.uniq) return silos.some(s => !s.mods[k]);
+    return true; });
+  const offer = []; const beh = pool.filter(k => ['twin','after','recycle','linger','reactor'].includes(k));
+  if (beh.length) offer.push(beh[Math.random()*beh.length|0]);
+  if (pool.includes('relight') && dists.filter(d => d.alive).length<=3) offer.push('relight');
+  pool = pool.filter(k => !offer.includes(k));
+  while (offer.length<3 && pool.length) offer.push(pool.splice(Math.random()*pool.length|0,1)[0]);
+  const box = $('#cards'); box.innerHTML = '';
+  for (const k of offer){ const c = CARDS[k], el = document.createElement('div'); el.className = 'card';
+    el.innerHTML = `<div class="k">${c.scope==='silo'?'Silo mod':'Whole valley'}${c.demo?' · <i>from the demo</i>':''}</div><h3>${c.name}</h3><p>${c.desc}</p><div class="btns"></div>`;
+    const btns = el.querySelector('.btns');
+    if (c.scope==='silo') for (const s of silos){ const b = document.createElement('button'); b.textContent = s.name; b.style.color = s.color; b.disabled = !!(c.uniq && s.mods[k]);
+      b.onclick = () => { if (c.uniq) s.mods[k] = true; else s.mods[k]++; takeCard(); }; btns.appendChild(b); }
+    else { const b = document.createElement('button'); b.textContent = 'Take'; b.style.color = 'var(--lamp)';
+      b.onclick = () => { if (k==='relight'){ const d = dists.find(d => !d.alive); if (d) d.alive = true; } else g[k]++; takeCard(); }; btns.appendChild(b); }
+    box.appendChild(el); }
+  $('#ovDraft').hidden = false;
+}
+function takeCard(){ sfx.pick(); startHour(g.hour+1); }
+function showEnd(win){
+  hideOverlays(); const lit = dists.filter(d => d.alive).length;
+  $('#endHead').innerHTML = win ? 'Dawn. <em>'+lit+' of 6</em> still lit.' : 'The valley went dark at <em>'+HOURS[g.hour].clock+'</em>.';
+  $('#endSub').textContent = win ? 'That is one full night. The director's notes cover what a full game adds around it.' : 'Every district is out. Relight three and carry on with the walkthrough, or start the night again.';
+  $('#endStats').innerHTML = `<span>Score</span><span>${g.score.toLocaleString()}</span><span>Best chain</span><span>×${g.bestChain}</span><span>Intercepts</span><span>${g.kills}</span><span>Shots fired</span><span>${g.shots}</span>`;
+  const row = $('#endBtns'); row.innerHTML = '';
+  const again = document.createElement('button'); again.className = 'go'; again.textContent = 'Start a new night'; again.onclick = () => { newRun(); startHour(0); };
+  if (!win){ const c = document.createElement('button'); c.className = 'ghost'; c.textContent = 'Relight three and retry '+HOURS[g.hour].clock;
+    c.onclick = () => { dists.slice(0,6).filter((d,i) => i%2===0).forEach(d => d.alive = true); startHour(g.hour); }; row.appendChild(c); }
+  row.appendChild(again); $('#ovEnd').hidden = false;
+}
+function jump(key){
+  audioInit(); g.paused = false;
+  if (!silos.length) newRun();
+  if (key==='pitch'){ clearField(); g.state = 'title'; hideOverlays(); $('#ovTitle').hidden = false; setNote('pitch'); return; }
+  if (!dists.some(d => d.alive)) dists.forEach((d,i) => { if (i%2===0) d.alive = true; });
+  if (key==='draft'){ clearField(); if (g.hour>=5) g.hour = 4; openDraft(); return; }
+  if (key==='dawn'){ clearField(); g.hour = 5; g.state = 'dawn'; g.dawnT = 0; hideOverlays(); setNote('dawn'); return; }
+  startHour(+key.slice(1));
+}
+
+/* ---------- notes rail ---------- */
+function setNote(key){
+  g.note = key; const n = NOTES[key];
+  $('#note').innerHTML = `<h2>${n.title}</h2><dl><div><dt>What you're playing</dt><dd>${n.now}</dd></div><div><dt>Where it comes from</dt><dd>${n.demo}</dd></div><div><dt>In the rebuild</dt><dd>${n.next}</dd></div></dl>`;
+  document.querySelectorAll('#chapters button').forEach(b => b.setAttribute('aria-current', b.dataset.k===key ? 'true':'false'));
+}
+function buildChapters(){
+  const ol = $('#chapters');
+  for (const k of CHAPTER_ORDER){ const li = document.createElement('li'), b = document.createElement('button'); b.dataset.k = k;
+    b.innerHTML = `<span class="tm">${NOTES[k].tm}</span><span>${NOTES[k].title}</span>`; b.onclick = () => jump(k); li.appendChild(b); ol.appendChild(li); }
+  const hint = document.createElement('li'); hint.className = 'hint'; hint.textContent = 'Select any line to jump the game there.'; ol.appendChild(hint);
+}
+
+/* ---------- update ---------- */
+function update(dt){
+  g.time += dt;
+  if (g.paused || g.state==='title' || g.state==='draft' || g.state==='end') return;
+  if (g.focusT>0) g.focusT = Math.max(0, g.focusT-dt);
+  const wdt = dt * (g.focusT>0 ? .33 : 1);
+  g.shake *= Math.pow(.002, dt); g.flash = Math.max(0, g.flash-dt);
+  if (g.state==='intro'){ g.introT += dt; if (g.introT>2.8) g.state = 'play'; }
+  if (g.state==='play'){ g.waveT += wdt; while (g.queue.length && g.queue[0].t<=g.waveT){ const q = g.queue.shift(); spawnEnemy(q.type,q.x0,-10,q.tx); } }
+
+  for (let i=g.enemies.length-1;i>=0;i--){ const e = g.enemies[i];
+    e.x += e.vx*wdt; e.y += e.vy*wdt; e.flash = Math.max(0,e.flash-wdt*3);
+    if (e.type==='split' && e.y>=e.splitY){ g.enemies.splice(i,1); sparks(e.x,e.y,8,'#c58bff',120); tone(880,.15,'square',.04,440);
+      for (let k=0;k<3;k++) spawnEnemy('streak',e.x,e.y,pickTarget('streak'),1.15); continue; }
+    if (e.y>=e.ty-1){ g.enemies.splice(i,1); impact(e); } }
+
+  for (let i=g.missiles.length-1;i>=0;i--){ const m = g.missiles[i], dx = m.tx-m.x, dy = m.ty-m.y, d = Math.hypot(dx,dy), step = m.speed*dt;
+    if (d<=step){ g.missiles.splice(i,1); const mo = m.silo.mods;
+      addBlast(m.tx,m.ty,m.radius,0,m.chain,m.silo.color,{hold:.4*Math.pow(2,mo.linger),pulses:mo.after?1:0}); sfx.burst(); g.shake = Math.max(g.shake,2.5); }
+    else { m.x += dx/d*step; m.y += dy/d*step; if (Math.random()<.6) g.parts.push({x:m.x,y:m.y,vx:rnd(-12,12),vy:rnd(-12,12),life:.3,max:.3,col:m.silo.color}); } }
+
+  for (let i=g.blasts.length-1;i>=0;i--){ const b = g.blasts[i];
+    if (b.delay>0){ b.delay -= wdt; continue; }
+    b.t += wdt; const G = .2, Sh = .35;
+    if (b.t<G) b.r = b.max*(1-Math.pow(1-b.t/G,2)); else if (b.t<G+b.hold) b.r = b.max; else b.r = b.max*Math.max(0,1-(b.t-G-b.hold)/Sh);
+    if (!b.harmless) for (let j=g.enemies.length-1;j>=0;j--){ const e = g.enemies[j]; if (b.hit.has(e.id)) continue;
+      if (Math.hypot(e.x-b.x,e.y-b.y) < b.r+5){ b.hit.add(e.id); if (killEnemy(e,b)) g.enemies.splice(j,1); } }
+    if (b.t>=G+b.hold+Sh){
+      if (b.pulses>0){ b.pulses--; b.t = 0; b.max *= .7; b.hit = new Set(); b.delay = .12; continue; }
+      g.blasts.splice(i,1); if (!b.harmless && --b.chain.live<=0) endChain(b.chain); } }
+
+  for (let i=g.parts.length-1;i>=0;i--){ const p = g.parts[i]; p.life -= dt; if (p.life<=0){ g.parts.splice(i,1); continue; } p.x += p.vx*wdt; p.y += p.vy*wdt; p.vy += 140*wdt; }
+  for (let i=g.floats.length-1;i>=0;i--){ const f = g.floats[i]; f.life -= dt; f.y -= 22*dt; if (f.life<=0) g.floats.splice(i,1); }
+  if (g.chainMsg){ g.chainMsg.t += dt; if (g.chainMsg.t>1.6) g.chainMsg = null; }
+  for (const s of silos) s.recoil = Math.max(0, s.recoil-dt*5);
+
+  if (g.state==='play' && !g.queue.length && !g.enemies.length && !g.missiles.length && !g.blasts.length) hourCleared();
+  if (g.state==='clear'){ g.tallyT += dt; if (g.tallyT>3.4){ if (g.hour>=HOURS.length-1){ g.state = 'dawn'; g.dawnT = 0; setNote('dawn'); } else openDraft(); } }
+  if (g.state==='dawn'){ g.dawnT += dt; if (g.dawnT>4.5){ g.state = 'end'; showEnd(true); } }
+  if (g.state==='lost'){ g.lostT += dt; if (g.lostT>1.8){ g.state = 'end'; showEnd(false); } }
+}
+
+/* ---------- render ---------- */
+const rgb = c => `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`, mix = (a,b,t) => [lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)];
+function nightProgress(){ // 0 at midnight, 6 at dawn
+  if (g.state==='title') return 0;
+  if (g.state==='dawn' || (g.state==='end' && dists.some(d => d.alive) && g.hour===5 && g.dawnT>0)) return 5.6 + .4*clamp(g.dawnT/4,0,1) + (g.dawnT>0?0:0);
+  return g.hour + clamp(g.waveT/g.waveLen,0,1)*.6;
+}
+function txt(s,x,y,size,col,align,font){ ctx.font = `${font==='d'?'800':'600'} ${size}px ${font==='d'?'"Big Shoulders Display","Arial Narrow",Impact,sans-serif':'"IBM Plex Mono",ui-monospace,Menlo,monospace'}`; ctx.textAlign = align||'left'; ctx.fillStyle = col; ctx.fillText(s,x,y); }
+function wrapText(s,x,y,size,col,maxW,lh){ ctx.font = `500 ${size}px "IBM Plex Sans",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = col;
+  const words = s.split(' '); let line = ''; for (const w of words){ const t = line ? line+' '+w : w; if (ctx.measureText(t).width>maxW && line){ ctx.fillText(line,x,y); y += lh; line = w; } else line = t; } ctx.fillText(line,x,y); }
+
+function render(){
+  ctx.setTransform(K,0,0,K,0,0);
+  const np = nightProgress(), hi = Math.min(5,Math.floor(np)), ft = np-hi;
+  const top = mix(SKY[hi][0],SKY[hi+1][0],ft), hor = mix(SKY[hi][1],SKY[hi+1][1],ft);
+  const sky = ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,rgb(top)); sky.addColorStop(.85,rgb(hor)); sky.addColorStop(1,rgb(hor));
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+  ctx.save();
+  if (g.shake>.3 && !reduceMotion) ctx.translate(rnd(-1,1)*g.shake, rnd(-1,1)*g.shake);
+
+  // stars and moon (the moon is the night's progress bar)
+  const starA = clamp(1-(np-4)/2,0,1);
+  for (const s of stars){ ctx.globalAlpha = starA*(.35+.65*Math.abs(Math.sin(g.time*s.tw+s.ph)))*s.a; ctx.fillStyle = '#dfe4ff'; ctx.fillRect(s.x, s.y*H*.8, s.s*U, s.s*U); }
+  ctx.globalAlpha = 1;
+  const mp = np/6, mxp = lerp(90,930,mp), myp = H*.56 - Math.sin(lerp(.18,1,mp)*Math.PI)*H*.44, mr = 17*U;
+  ctx.fillStyle = `rgba(255,244,214,${.07})`; ctx.beginPath(); ctx.arc(mxp,myp,mr*2.6,0,6.283); ctx.fill();
+  ctx.fillStyle = '#fff4d6'; ctx.beginPath(); ctx.arc(mxp,myp,mr,0,6.283); ctx.fill();
+  ctx.fillStyle = rgb(mix(top,hor,clamp(myp/H,0,1))); ctx.beginPath(); ctx.arc(mxp+mr*.42,myp-mr*.18,mr*.88,0,6.283); ctx.fill();
+
+  // far ridge
+  ctx.fillStyle = rgb(mix(hor,[8,10,26],.55)); ctx.beginPath(); ctx.moveTo(0,H);
+  for (const p of ridge) ctx.lineTo(p[0], H-70-p[1]); ctx.lineTo(W,H); ctx.fill();
+  if (np>4.6){ const a = clamp((np-4.6)/1.4,0,1); const sun = ctx.createRadialGradient(760,H-60,0,760,H-60,520); sun.addColorStop(0,`rgba(255,200,150,${.55*a})`); sun.addColorStop(1,'rgba(255,200,150,0)'); ctx.fillStyle = sun; ctx.fillRect(0,0,W,H); }
+
+  // incoming
+  ctx.lineCap = 'round';
+  for (const e of g.enemies){ const def = TYPE[e.type], col = def.col;
+    ctx.strokeStyle = col; ctx.globalAlpha = .16; ctx.lineWidth = 1.2*U; ctx.beginPath(); ctx.moveTo(e.sx,e.sy); ctx.lineTo(e.x,e.y); ctx.stroke();
+    const sp = Math.hypot(e.vx,e.vy), tl = Math.min(e.type==='dart'?150:90, Math.hypot(e.x-e.sx,e.y-e.sy));
+    const gx = e.x-e.vx/sp*tl, gy = e.y-e.vy/sp*tl, gr = ctx.createLinearGradient(gx,gy,e.x,e.y); gr.addColorStop(0,'rgba(255,255,255,0)'); gr.addColorStop(1,col);
+    ctx.globalAlpha = 1; ctx.strokeStyle = gr; ctx.lineWidth = (e.type==='heavy'?3.4:e.type==='dart'?1.6:2.2)*U; ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(e.x,e.y); ctx.stroke();
+    const hr = (e.type==='heavy'?7:e.type==='split'?5:e.type==='dart'?2.6:3.4)*U;
+    ctx.fillStyle = e.flash>0 ? '#fff' : col; ctx.beginPath(); ctx.arc(e.x,e.y,hr,0,6.283); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath(); ctx.arc(e.x,e.y,hr*.45,0,6.283); ctx.fill();
+    if (e.type==='heavy'){ ctx.strokeStyle = col; ctx.lineWidth = 1.5*U; for (let k=0;k<e.hp;k++){ ctx.beginPath(); ctx.arc(e.x,e.y,hr+(4+k*4)*U,0,6.283); ctx.stroke(); } }
+    if (e.type==='split'){ ctx.fillStyle = col; for (let k=0;k<3;k++){ const a = g.time*3+k*2.094; ctx.beginPath(); ctx.arc(e.x+Math.cos(a)*hr*1.9,e.y+Math.sin(a)*hr*1.9,1.6*U,0,6.283); ctx.fill(); } } }
+
+  // interceptors
+  for (const m of g.missiles){ ctx.strokeStyle = m.silo.color; ctx.globalAlpha = .5; ctx.lineWidth = 1.6*U; ctx.beginPath(); ctx.moveTo(m.sx,m.sy); ctx.lineTo(m.x,m.y); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(m.x,m.y,2.6*U,0,6.283); ctx.fill();
+    ctx.strokeStyle = m.silo.color; ctx.lineWidth = 1*U; const c = 5*U; ctx.beginPath(); ctx.moveTo(m.tx-c,m.ty-c); ctx.lineTo(m.tx+c,m.ty+c); ctx.moveTo(m.tx+c,m.ty-c); ctx.lineTo(m.tx-c,m.ty+c); ctx.stroke(); }
+
+  // blasts
+  ctx.globalCompositeOperation = 'lighter';
+  for (const b of g.blasts){ if (b.delay>0 || b.r<=0) continue; const gr = ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    gr.addColorStop(0,'rgba(255,255,255,.95)'); gr.addColorStop(.35,b.col); gr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.globalAlpha = .8; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,6.283); ctx.fill();
+    ctx.globalAlpha = .9; ctx.strokeStyle = b.col; ctx.lineWidth = 1.5*U; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,6.283); ctx.stroke(); }
+  for (const p of g.parts){ ctx.globalAlpha = clamp(p.life/p.max,0,1); ctx.fillStyle = p.col; ctx.fillRect(p.x-U,p.y-U,2*U,2*U); }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+
+  // ground
+  ctx.fillStyle = '#04060f'; ctx.beginPath(); ctx.moveTo(0,H); for (let x=0;x<=W;x+=10) ctx.lineTo(x,groundY(x)); ctx.lineTo(W,H); ctx.fill();
+  ctx.strokeStyle = rgb(mix(hor,[255,255,255],.12)); ctx.lineWidth = 1.2*U; ctx.beginPath(); for (let x=0;x<=W;x+=10) x ? ctx.lineTo(x,groundY(x)) : ctx.moveTo(x,groundY(x)); ctx.stroke();
+
+  // districts
+  for (const d of dists){ const gy = groundY(d.x)+2;
+    if (d.alive){ const gl = ctx.createRadialGradient(d.x,gy-10,0,d.x,gy-10,70); gl.addColorStop(0,'rgba(255,198,110,.22)'); gl.addColorStop(1,'rgba(255,198,110,0)'); ctx.fillStyle = gl; ctx.fillRect(d.x-70,gy-80,140,90); }
+    for (const b of d.b){ const h = d.alive ? b.h : b.h*.22+3; ctx.fillStyle = d.alive ? '#0b1026' : '#080a14'; ctx.fillRect(d.x+b.dx,gy-h,b.w,h);
+      if (d.alive){ ctx.fillStyle = '#ffc66e'; const cw = b.w/b.cols; for (let r=0;r<b.rows;r++) for (let c=0;c<b.cols;c++) if (b.win[r*b.cols+c]) ctx.fillRect(d.x+b.dx+c*cw+cw*.25, gy-h+3+r*7, cw*.5, 3.2); } } }
+
+  // silos
+  const aim = (g.state==='play' && !g.paused) ? aimSilo() : null;
+  for (const s of silos){ const p = siloTop(s), gy = groundY(s.x), col = s.online ? s.color : '#4a2a36';
+    ctx.fillStyle = '#0b1026'; ctx.strokeStyle = col; ctx.lineWidth = 1.6*U; ctx.beginPath(); ctx.moveTo(s.x-22,gy+2); ctx.lineTo(s.x-13,gy-13); ctx.lineTo(s.x+13,gy-13); ctx.lineTo(s.x+22,gy+2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    if (s.online){ const a = Math.atan2(g.my-p.y,g.mx-p.x), ang = (g.mouse && g.my<p.y) ? a : -Math.PI/2, L = 20-6*s.recoil;
+      ctx.lineWidth = 3.5*U; ctx.beginPath(); ctx.moveTo(p.x,p.y+4); ctx.lineTo(p.x+Math.cos(ang)*L,p.y+4+Math.sin(ang)*L); ctx.stroke(); }
+    else if (Math.sin(g.time*8)>0){ ctx.fillStyle = '#ff6b5e'; ctx.beginPath(); ctx.arc(s.x,gy-6,3*U,0,6.283); ctx.fill(); }
+    if (g.lock===s.i){ ctx.strokeStyle = s.color; ctx.setLineDash([4*U,4*U]); ctx.beginPath(); ctx.arc(s.x,gy-6,30,0,6.283); ctx.stroke(); ctx.setLineDash([]); }
+    // ammo pips
+    if (g.state!=='title'){ const n = maxAmmo(s), per = Math.ceil(n/2), pw = 5*U, gap = 2*U, tw = per*(pw+gap)-gap;
+      for (let i=0;i<n;i++){ const r = Math.floor(i/per), c = i%per; ctx.fillStyle = (s.online && i<s.ammo) ? s.color : 'rgba(255,255,255,.12)'; ctx.fillRect(s.x-tw/2+c*(pw+gap), H-10*U-4-r*(6*U), pw, 4*U); }
+      if (g.mouse) txt(s.key, s.x, gy-2, 10*U, col, 'center'); } }
+
+  // floaters
+  for (const f of g.floats){ ctx.globalAlpha = clamp(f.life/f.max*1.5,0,1); txt(f.text,f.x,f.y,f.size*U,f.col,'center'); }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // focus tint
+  if (g.focusT>0){ ctx.fillStyle = 'rgba(98,230,255,.07)'; ctx.fillRect(0,0,W,H); ctx.strokeStyle = 'rgba(98,230,255,.6)'; ctx.lineWidth = 4*U; ctx.strokeRect(2,2,W-4,H-4);
+    ctx.fillStyle = '#62e6ff'; ctx.fillRect(0,H-3*U,W*g.focusT/5,3*U); }
+  if (g.flash>0){ ctx.fillStyle = `rgba(255,107,94,${g.flash*.35})`; ctx.fillRect(0,0,W,H); }
+
+  // HUD
+  if (g.state!=='title'){
+    const pad = 16, fs = 26*U;
+    txt(g.state==='dawn'||(g.state==='end'&&g.dawnT>4) ? '06:00' : HOURS[g.hour].clock, pad, pad+fs*.8, fs, '#e9ebff', 'left', 'd');
+    txt(HOURS[g.hour].name.toUpperCase(), pad, pad+fs*.8+13*U, 9.5*U, '#9aa1cf');
+    txt(g.score.toLocaleString(), W-pad, pad+fs*.8, fs, '#e9ebff', 'right', 'd');
+    const lw = 9*U; for (let i=0;i<dists.length;i++){ ctx.fillStyle = dists[i].alive ? '#ffc66e' : 'rgba(255,255,255,.14)'; ctx.fillRect(W-pad-(dists.length-i)*(lw+3*U)+3*U, pad+fs*.8+6*U, lw, 6*U); }
+  }
+  if (g.chainMsg){ const c = g.chainMsg, a = clamp(1.6-c.t,0,1)*clamp(c.t*8,0,1), sz = (40+Math.min(c.n,12)*3)*U*(1+.25*Math.max(0,1-c.t*5));
+    ctx.globalAlpha = a; txt('CHAIN ×'+c.n, W/2, H*.2, sz, c.col, 'center', 'd'); ctx.globalAlpha = 1; }
+  if (g.state==='intro'){ const a = clamp(g.introT*3,0,1)*clamp((2.8-g.introT)*2.5,0,1), h = HOURS[g.hour]; ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(7,10,28,.6)'; ctx.fillRect(0,H*.3,W,H*.3);
+    txt(h.clock, W/2, H*.42, 64*U, '#ffc66e', 'center', 'd'); txt(h.name.toUpperCase(), W/2, H*.42+24*U, 14*U, '#e9ebff', 'center');
+    wrapText(h.brief, W/2, H*.42+50*U, 15*U, '#c9cdf0', Math.min(W-60,560*U), 20*U); ctx.globalAlpha = 1; }
+  if (g.state==='clear' && g.tally){ const t = g.tallyT, y0 = H*.36; ctx.fillStyle = 'rgba(7,10,28,.55)'; ctx.fillRect(0,H*.26,W,H*.34);
+    txt(HOURS[g.hour].clock+' HELD', W/2, y0, 50*U, '#ffc66e', 'center', 'd');
+    if (t>.6) txt(`districts lit  ${g.tally.lit} × 100`, W/2, y0+32*U, 14*U, '#e9ebff', 'center');
+    if (t>1.1) txt(`interceptors spare  ${g.tally.spare} × 5`, W/2, y0+54*U, 14*U, '#e9ebff', 'center');
+    if (t>1.6) txt('+'+g.tally.bonus, W/2, y0+84*U, 22*U, '#ffc66e', 'center'); }
+  if (g.state==='dawn'){ ctx.globalAlpha = clamp(g.dawnT-1,0,1); txt('DAWN', W/2, H*.4, 96*U, '#fff4d6', 'center', 'd'); ctx.globalAlpha = 1; }
+
+  // aim reticle
+  if (g.mouse && g.state==='play' && !g.paused){ const col = aim ? aim.color : '#9aa1cf';
+    if (aim){ const p = siloTop(aim), st = siloStats(aim); ctx.strokeStyle = col; ctx.globalAlpha = .22; ctx.lineWidth = 1*U; ctx.setLineDash([3*U,6*U]); ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(g.mx,g.my); ctx.stroke(); ctx.setLineDash([]);
+      ctx.globalAlpha = .35; const off = aim.mods.twin ? [-st.radius*.8, st.radius*.8] : [0]; for (const o of off){ ctx.beginPath(); ctx.arc(g.mx+o,g.my,st.radius,0,6.283); ctx.stroke(); } }
+    ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 1.5*U; const c = 9*U, q = 3*U; ctx.beginPath(); ctx.moveTo(g.mx-c,g.my); ctx.lineTo(g.mx-q,g.my); ctx.moveTo(g.mx+q,g.my); ctx.lineTo(g.mx+c,g.my); ctx.moveTo(g.mx,g.my-c); ctx.lineTo(g.mx,g.my-q); ctx.moveTo(g.mx,g.my+q); ctx.lineTo(g.mx,g.my+c); ctx.stroke(); }
+
+  // focus button
+  const pct = g.focusT>0 ? g.focusT/5*100 : g.focus;
+  $('#focusFill').style.width = pct+'%'; $('#focusPct').textContent = g.focusT>0 ? 'active' : (g.focus>=100 ? 'ready · Space' : Math.floor(g.focus)+'%');
+  $('#focusBtn').classList.toggle('ready', g.focus>=100 && g.focusT<=0);
+}
+
+/* ---------- sizing, input, loop ---------- */
+function resize(){
+  const r = stage.getBoundingClientRect(); if (!r.width) return;
+  const dpr = Math.min(2, window.devicePixelRatio||1), newH = W*r.height/r.width;
+  if (Math.abs(newH-H)>1){ const f = newH/H; for (const a of [g.enemies,g.missiles,g.blasts,g.parts,g.floats]) for (const o of a){ o.y *= f; if (o.sy!=null) o.sy *= f; if (o.ty!=null) o.ty *= f; if (o.vy!=null) o.vy *= f; if (o.splitY) o.splitY *= f; } g.my *= f; H = newH; }
+  S = H/625; U = clamp(700/r.width,1,2.2);
+  cv.width = Math.round(r.width*dpr); cv.height = Math.round(r.height*dpr); K = cv.width/W;
+}
+function toWorld(e){ const r = cv.getBoundingClientRect(); return [(e.clientX-r.left)/r.width*W, (e.clientY-r.top)/r.width*W]; }
+cv.addEventListener('pointermove', e => { [g.mx,g.my] = toWorld(e); const m = e.pointerType==='mouse'; if (m!==g.mouse){ g.mouse = m; stage.classList.toggle('nocursor', m); } });
+cv.addEventListener('pointerleave', () => { if (g.mouse){ g.mouse = false; stage.classList.remove('nocursor'); } });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); const [x,y] = toWorld(e); g.mx = x; g.my = y;
+  if (g.state!=='play') return;
+  for (const s of silos) if (s.online && Math.hypot(x-s.x, y-(groundY(s.x)-6)) < 34){ g.lock = g.lock===s.i ? -1 : s.i; tone(500,.06,'square',.05); return; }
+  fire(null,x,y); });
+addEventListener('keydown', e => {
+  if (e.target.tagName==='BUTTON' && (e.code==='Space'||e.code==='Enter')) { if (e.code==='Space' && g.state==='play') e.preventDefault(); else return; }
+  const k = e.key.toLowerCase(); audioInit();
+  if (g.state==='play'){ const i = {a:0,s:1,d:2,'1':0,'2':1,'3':2}[k]; if (i!=null && !e.repeat){ fire(silos[i],g.mx,g.my); return; }
+    if (e.code==='Space'){ e.preventDefault(); useFocus(); return; } }
+  if (k==='p' || k==='escape') togglePause();
+  if (k==='m') toggleMute();
+});
+function togglePause(force){ if (!['play','intro','clear'].includes(g.state)) return; g.paused = force==null ? !g.paused : force; $('#ovPause').hidden = !g.paused; $('#pauseBtn').textContent = g.paused ? 'Resume' : 'Pause'; }
+function toggleMute(){ muted = !muted; $('#muteBtn').textContent = 'Sound: '+(muted?'off':'on'); }
+$('#startBtn').onclick = () => { audioInit(); newRun(); startHour(0); };
+$('#resumeBtn').onclick = () => togglePause(false);
+$('#pauseBtn').onclick = () => togglePause();
+$('#muteBtn').onclick = toggleMute;
+$('#focusBtn').onclick = () => { audioInit(); useFocus(); };
+$('#skipBtn').onclick = () => { if (g.state==='play' || g.state==='intro'){ g.paused = false; $('#ovPause').hidden = true; g.state = 'play'; clearField(); hourCleared(); } };
+document.addEventListener('visibilitychange', () => { if (document.hidden) togglePause(true); });
+
+for (let i=0;i<110;i++) stars.push({x:rnd(0,W),y:Math.random(),s:rnd(.8,2),tw:rnd(.3,1.6),ph:rnd(0,6),a:rnd(.4,1)});
+{ let y = 30; for (let x=0;x<=W;x+=25){ y = clamp(y+rnd(-14,14),8,70); ridge.push([x,y]); } }
+newRun(); buildChapters(); setNote('pitch');
+new ResizeObserver(resize).observe(stage); resize();
+let last = performance.now();
+function frame(now){ const dt = Math.min(.05,(now-last)/1000); last = now; update(dt); render(); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+window.__missilo = {g, jump, fire, get silos(){return silos;}, get dists(){return dists;}};
+})();
+</script>
