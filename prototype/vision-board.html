@@ -1,0 +1,306 @@
+<title>Missilo Art Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Big+Shoulders+Display:wght@800&family=Cormorant+SC:wght@500;700&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,400&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Nunito:wght@500;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: a gallery wall. Each direction is one board: a live study of the same game moment, with its palette, type and rules beside it. */
+:root{
+  color-scheme: dark;
+  --wall:#0f1115;       /* neutral gallery wall, so no board borrows mood from the page */
+  --card:#161920;
+  --line:#2a2e39;
+  --ink:#eceef4;
+  --dim:#9aa0b0;
+  --pin:#ffc66e;        /* the game's lamp amber, used only for labels */
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+body{background:var(--wall);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:34px}
+.intro h1{font-size:clamp(30px,5vw,46px);line-height:1.05;font-weight:600;letter-spacing:-.01em;margin:0 0 10px;text-wrap:balance}
+.intro p{margin:0;color:var(--dim);max-width:66ch}
+.intro p+p{margin-top:8px}
+.board{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:0;background:var(--card);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+@media (max-width:860px){.board{grid-template-columns:minmax(0,1fr)}}
+.study{position:relative;aspect-ratio:4/3;max-width:100%;min-width:0}
+.study canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.spec{padding:20px 22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.lbl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--pin);margin:0}
+.spec h2{margin:0;font-size:34px;line-height:1;text-wrap:balance}
+.thesis{margin:0;color:var(--ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips span{width:44px;height:44px;border-radius:3px;border:1px solid rgba(255,255,255,.12);display:flex;align-items:flex-end;justify-content:center;font-family:var(--mono);font-size:8.5px;padding-bottom:2px}
+.type{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:2px}
+.type .d{font-size:30px;line-height:1.05}
+.type .t{font-size:14px;color:var(--dim)}
+.spec dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 12px;font-size:13.5px}
+.spec dt{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);padding-top:2px}
+.spec dd{margin:0}
+.risk{margin:0;font-size:13.5px;color:var(--dim)}
+.risk b{color:var(--ink);font-weight:600}
+/* per-direction type */
+.b1 h2,.b1 .d{font-family:"Fraunces",Georgia,serif;font-weight:600}.b1 .t{font-family:"Nunito",system-ui,sans-serif}
+.b2 h2,.b2 .d{font-family:"Cormorant SC","Cormorant Garamond",Georgia,serif;font-weight:700;letter-spacing:.04em}.b2 .t{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:17px}
+.b3 h2,.b3 .d{font-family:"Archivo Black","Arial Black",Impact,sans-serif;text-transform:uppercase;letter-spacing:-.01em}.b3 .t{font-family:"Space Mono",ui-monospace,monospace;font-size:12.5px}
+.b4 h2,.b4 .d{font-family:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;font-weight:800;letter-spacing:.03em}.b4 .t{font-family:var(--mono);font-size:12.5px}
+.pick{border-top:1px solid var(--line);padding-top:22px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+@media (max-width:860px){.pick{grid-template-columns:minmax(0,1fr)}}
+.pick h2{font-size:24px;font-weight:600;margin:0 0 8px}
+.pick p{margin:0 0 8px;max-width:60ch}
+.pick ul,.pick ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.pick li span{color:var(--dim)}
+</style>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>Four ways Missilo could look</h1>
+    <p>Each board draws the same four seconds: one satellite circling the planet, three threats falling out of the dark side, one shot, one burst. The drawings are live code, not finished art. They are here to compare feeling, palette and how each direction would show charge, danger and pickups without a single label.</p>
+    <p>All four keep the rules from the core prototype: no HUD, city lights as health, sunlight as ammunition.</p>
+  </div>
+
+  <section class="board b2">
+    <div class="study"><canvas data-style="orrery" aria-label="Live study: brass orrery direction"></canvas></div>
+    <div class="spec">
+      <p class="lbl">Direction A</p>
+      <h2>The Orrery</h2>
+      <p class="thesis">The game is a brass instrument on a desk. The planet is an enamel globe, the satellite rides a geared arm, the sun is a desk lamp, and threats are red glass marbles rolling in.</p>
+      <div class="chips"><span style="background:#0f1a17">baize</span><span style="background:#b8893a;color:#1a1206">brass</span><span style="background:#e9c46a;color:#1a1206">polish</span><span style="background:#1f3f6b">enamel</span><span style="background:#c8323a">ruby</span><span style="background:#f6ead0;color:#1a1206">lamp</span></div>
+      <div class="type"><span class="d">Night the Third</span><span class="t">Engraved small capitals, as on a scientific instrument.</span></div>
+      <dl>
+        <dt>Charge</dt><dd>Six filament bulbs on the satellite's carriage. They glow in the lamplight and go dark in the globe's shadow.</dd>
+        <dt>Danger</dt><dd>City jewels on the rim go out one by one. The felt shows the globe's real cast shadow.</dd>
+        <dt>Pickups</dt><dd>New parts arrive as physical pieces: a gear, a second arm, a lens. You see them click onto the machine.</dd>
+      </dl>
+      <p class="risk"><b>Cost:</b> needs good metal and glass materials to sell it. <b>Payoff:</b> every upgrade is a visible part, so the run builds an object you can read at a glance.</p>
+    </div>
+  </section>
+
+  <section class="board b1">
+    <div class="study"><canvas data-style="story" aria-label="Live study: storybook gouache direction"></canvas></div>
+    <div class="spec">
+      <p class="lbl">Direction B</p>
+      <h2>Little Lamp</h2>
+      <p class="thesis">A tiny painted planet with houses you could count. Gouache and chalk on dark paper. The satellite is a lantern, and what you are protecting is visibly somebody's home.</p>
+      <div class="chips"><span style="background:#18263a">ink</span><span style="background:#3f6f6a">sage</span><span style="background:#e8dcc0;color:#1a1206">paper</span><span style="background:#e4a04a;color:#1a1206">ochre</span><span style="background:#d9654b">coral</span><span style="background:#86a98d;color:#1a1206">moss</span></div>
+      <div class="type"><span class="d">The third night</span><span class="t">Soft serif with a rounded companion. Reads as a picture book.</span></div>
+      <dl>
+        <dt>Charge</dt><dd>The lantern's flame. Bright in daylight, guttering in the planet's shadow.</dd>
+        <dt>Danger</dt><dd>Windows go dark house by house. A lost city leaves chimney smoke, not rubble.</dd>
+        <dt>Pickups</dt><dd>Parcels drift up from the houses on balloons. The town is sending you things.</dd>
+      </dl>
+      <p class="risk"><b>Cost:</b> hand-painted assets, and the glowing 3D blasts you liked would become painted blooms. <b>Payoff:</b> the strongest emotional hook of the four, and it is nothing like the genre's usual look.</p>
+    </div>
+  </section>
+
+  <section class="board b3">
+    <div class="study"><canvas data-style="riso" aria-label="Live study: two-ink print direction"></canvas></div>
+    <div class="spec">
+      <p class="lbl">Direction C</p>
+      <h2>Two-Ink Print</h2>
+      <p class="thesis">Flat shapes in three spot inks on warm paper, with halftone for shadow and plates printed slightly out of register. Loud, graphic, instantly readable on a phone in daylight.</p>
+      <div class="chips"><span style="background:#efe9db;color:#1a1206">paper</span><span style="background:#2438c8">blue</span><span style="background:#ff4b72">pink</span><span style="background:#ffc02e;color:#1a1206">yellow</span><span style="background:#1a1f6e">overlap</span></div>
+      <div class="type"><span class="d">Night 03</span><span class="t">Heavy grotesque + typewriter mono. Poster energy.</span></div>
+      <dl>
+        <dt>Charge</dt><dd>Yellow dots round the satellite. In shadow they print as empty outlines.</dd>
+        <dt>Danger</dt><dd>Yellow city blocks drop out of the print, leaving bare paper.</dd>
+        <dt>Pickups</dt><dd>Each item adds a shape to the satellite's silhouette. More inks unlock as the run goes on.</dd>
+      </dl>
+      <p class="risk"><b>Cost:</b> a light background gives up the night mood, and flat ink gives up the 3D blasts. <b>Payoff:</b> cheapest to produce, clearest at small size.</p>
+    </div>
+  </section>
+
+  <section class="board b4">
+    <div class="study"><canvas data-style="night" aria-label="Live study: the current night-light direction"></canvas></div>
+    <div class="spec">
+      <p class="lbl">Direction D · where the prototype is now</p>
+      <h2>Night Light</h2>
+      <p class="thesis">Deep space, a lit globe, bloom on everything that matters. Handsome and safe. This is the look you called generic, and it is the baseline to beat.</p>
+      <div class="chips"><span style="background:#05060f">void</span><span style="background:#17467f">ocean</span><span style="background:#7fe9ff;color:#06222a">signal</span><span style="background:#ffc66e;color:#1a1206">lamp</span><span style="background:#ff6b5e">threat</span></div>
+      <div class="type"><span class="d">NIGHT 3</span><span class="t">Condensed signage + technical mono.</span></div>
+      <dl>
+        <dt>Charge</dt><dd>A ring of glowing beads orbiting the satellite.</dd>
+        <dt>Danger</dt><dd>City glows on the rim go out.</dd>
+        <dt>Pickups</dt><dd>Pods in orbit.</dd>
+      </dl>
+      <p class="risk"><b>Cost:</b> looks like many other space games. <b>Payoff:</b> already built, and the blasts read well.</p>
+    </div>
+  </section>
+
+  <div class="pick">
+    <div>
+      <h2>My pick: the Orrery</h2>
+      <p>It is the only direction where "everything lives in the world" is literal. The whole screen is one object, so there is nowhere a HUD could even go. Sunlight as ammunition becomes a desk lamp and a real shadow, which a player understands on sight.</p>
+      <p>It also keeps what you liked. Bursts stay as 3D light, and they get better: a flash that rakes across brass and glass is a stronger effect than a glow on black. Upgrades become parts bolted onto the machine, which is the Isaac idea of reading a run off the character's body.</p>
+      <p>Little Lamp is the one I would choose if the feeling you want is tenderness more than craft.</p>
+    </div>
+    <div>
+      <h2>What would help me most</h2>
+      <ol>
+        <li>Which board do you keep looking at? <span>Gut answer, before reasons.</span></li>
+        <li>Anything you want mixed? <span>Orrery brass with Little Lamp's houses is a real option.</span></li>
+        <li>Is a light background ever acceptable, <span>or is night non-negotiable?</span></li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const TAU = Math.PI*2, cos = Math.cos, sin = Math.sin, clamp = (v,a,b) => Math.max(a,Math.min(b,v)), lerp = (a,b,t) => a+(b-a)*t;
+const rand = i => { const x = sin(i*127.1+311.7)*43758.5453; return x-Math.floor(x); };
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const noise = (() => { const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'), d = x.createImageData(160,160); for (let i=0;i<d.data.length;i+=4){ const v = Math.random()*255; d.data[i] = d.data[i+1] = d.data[i+2] = v; d.data[i+3] = 255; } x.putImageData(d,0,0); return c; })();
+const dots = (() => { const c = document.createElement('canvas'); c.width = c.height = 8; const x = c.getContext('2d'); x.fillStyle = '#2438c8'; x.beginPath(); x.arc(4,4,2.1,0,TAU); x.fill(); return c; })();
+
+// The shared moment, in planet radii, y up. One loop is 5.2 seconds.
+function moment(t){
+  const L = 5.2, p = t%L, tL = 1.25, tK = 2.05, sa = 2.3+t*.33, saL = sa-(p-tL)*.33;
+  const bez = (u,o) => { const P0 = [3.4+o*.28,2.05-o*.2], P1 = [2.3+o*.1,.15], P2 = [.98*cos(.32+o*.16),.98*sin(.32+o*.16)], a = (1-u)*(1-u), b = 2*u*(1-u), c = u*u; return [a*P0[0]+b*P1[0]+c*P2[0], a*P0[1]+b*P1[1]+c*P2[1]]; };
+  const uK = .6, u = Math.min(p/3.4, uK), B = bez(uK,0), satL = [1.8*cos(saL),1.8*sin(saL)], m = clamp((p-tL)/(tK-tL),0,1), bt = p-tK;
+  return { p, sat:[1.8*cos(sa),1.8*sin(sa)], sa, lit:!(cos(sa)>0 && Math.abs(1.8*sin(sa))<1),
+    foes: p<tK ? [-1,0,1].map(o => ({pos:bez(u,o), prev:bez(Math.max(0,u-.09),o), o})) : [], kills:[-1,0,1].map(o => bez(uK,o)),
+    missile: (p>=tL && p<tK) ? {pos:[lerp(satL[0],B[0],m)+sin(m*Math.PI)*.18, lerp(satL[1],B[1],m)+sin(m*Math.PI)*.12], from:satL} : null,
+    B, burst: bt>=0 && bt<1.5 ? {r:.62*(1-Math.pow(1-Math.min(bt/.18,1),2)), a:bt<.7 ? 1 : Math.max(0,1-(bt-.7)/.8), bt} : null,
+    charge: p<tL ? 6 : (p>3.9 ? 6 : 5), rot:t*.05, t };
+}
+function blob(c,x,y,r,seed,amp,n){ c.beginPath(); n = n||48; for (let i=0;i<=n;i++){ const a = i/n*TAU, rr = r*(1+amp*sin(a*3+seed)+amp*.6*sin(a*7+seed*2.3)+amp*.4*sin(a*13+seed*.7)); i ? c.lineTo(x+cos(a)*rr,y+sin(a)*rr) : c.moveTo(x+cos(a)*rr,y+sin(a)*rr); } c.closePath(); }
+function glow(c,x,y,r,col,a){ const g = c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,col); g.addColorStop(1,'rgba(0,0,0,0)'); c.globalAlpha = a; c.fillStyle = g; c.beginPath(); c.arc(x,y,r,0,TAU); c.fill(); c.globalAlpha = 1; }
+function grain(c,w,h,a,mode){ c.save(); c.globalAlpha = a; c.globalCompositeOperation = mode||'overlay'; c.fillStyle = c.createPattern(noise,'repeat'); c.fillRect(0,0,w,h); c.restore(); }
+
+const STYLES = {
+  /* ---- A: brass orrery on a baize desk ---- */
+  orrery(c,w,h,M){
+    const S = h/5.3, cx = w*.44, cy = h*.53, X = x => cx+x*S, Y = y => cy-y*S, fl = M.burst ? M.burst.a*(M.burst.bt<.25?1:.5) : 0;
+    let g = c.createRadialGradient(cx,cy,S*.5,cx,cy,w*.8); g.addColorStop(0,'#1d322b'); g.addColorStop(1,'#08100d'); c.fillStyle = g; c.fillRect(0,0,w,h);
+    glow(c,-w*.05,h*.1,w*.75,'rgba(255,224,170,.5)',.5);                                  // the desk lamp is the sun
+    grain(c,w,h,.1,'overlay');
+    // the globe's cast shadow across the felt: where the satellite cannot charge
+    g = c.createLinearGradient(cx,0,w,0); g.addColorStop(0,'rgba(0,0,0,.55)'); g.addColorStop(1,'rgba(0,0,0,.2)'); c.fillStyle = g; c.beginPath(); c.moveTo(X(.2),Y(1)); c.lineTo(w,Y(1.25)); c.lineTo(w,Y(-1.25)); c.lineTo(X(.2),Y(-1)); c.fill();
+    const brass = (lw) => { const b = c.createLinearGradient(0,0,w,h); b.addColorStop(0,'#f2d58a'); b.addColorStop(.35,'#b8893a'); b.addColorStop(.6,'#6b4a1c'); b.addColorStop(1,'#caa24a'); c.strokeStyle = b; c.lineWidth = lw; };
+    // outer dial with engraved degree ticks
+    brass(S*.09); c.beginPath(); c.arc(cx,cy,S*2.55,0,TAU); c.stroke(); c.strokeStyle = 'rgba(20,12,2,.7)'; c.lineWidth = 1;
+    for (let i=0;i<72;i++){ const a = i/72*TAU, r0 = S*(i%6 ? 2.53 : 2.51), r1 = S*2.59; c.beginPath(); c.moveTo(cx+cos(a)*r0,cy+sin(a)*r0); c.lineTo(cx+cos(a)*r1,cy+sin(a)*r1); c.stroke(); }
+    brass(S*.035); c.beginPath(); c.arc(cx,cy,S*1.8,0,TAU); c.stroke();
+    // geared arm carrying the satellite, with a counterweight
+    const sx = X(M.sat[0]), sy = Y(M.sat[1]), ax = cos(M.sa), ay = -sin(M.sa);
+    c.lineCap = 'round'; brass(S*.07); c.beginPath(); c.moveTo(cx-ax*S*.6,cy-ay*S*.6); c.lineTo(sx,sy); c.stroke();
+    c.strokeStyle = 'rgba(255,240,200,.5)'; c.lineWidth = 1; c.beginPath(); c.moveTo(cx,cy-2); c.lineTo(sx,sy-2); c.stroke();
+    c.fillStyle = '#8a6424'; c.beginPath(); c.arc(cx-ax*S*.6,cy-ay*S*.6,S*.09,0,TAU); c.fill();
+    // enamel globe
+    c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx+S*.16,cy+S*.14,S*1.02,S*1.02,0,0,TAU); c.fill();
+    g = c.createRadialGradient(cx-S*.45,cy-S*.4,S*.05,cx,cy,S); g.addColorStop(0,'#8fb6ea'); g.addColorStop(.3,'#2f5fa3'); g.addColorStop(.75,'#16305a'); g.addColorStop(1,'#091428'); c.fillStyle = g; c.beginPath(); c.arc(cx,cy,S,0,TAU); c.fill();
+    c.save(); c.beginPath(); c.arc(cx,cy,S,0,TAU); c.clip(); c.strokeStyle = 'rgba(214,176,92,.55)'; c.lineWidth = 1.2;
+    for (let i=0;i<6;i++){ const a = M.rot+i*TAU/12; c.beginPath(); c.ellipse(cx,cy,S,Math.abs(cos(a*1))*S*.02+S*Math.abs(sin(i*.52+M.rot)),i*TAU/12+M.rot,0,TAU); c.stroke(); }
+    for (const r of [.33,.66]){ c.beginPath(); c.arc(cx,cy,S*r,0,TAU); c.stroke(); }
+    c.fillStyle = `rgba(255,236,190,${fl*.35})`; c.fillRect(cx-S,cy-S,S*2,S*2); c.restore();
+    brass(S*.05); c.beginPath(); c.arc(cx,cy,S,0,TAU); c.stroke(); c.fillStyle = '#d9b45c'; c.beginPath(); c.arc(cx,cy,S*.07,0,TAU); c.fill();
+    // city jewels set in the rim
+    for (let i=0;i<6;i++){ const a = i*TAU/6+.3+M.rot, x = X(cos(a)*1.02), y = Y(sin(a)*1.02), on = i!==4; if (on) glow(c,x,y,S*.3,'rgba(255,190,90,.9)',.6);
+      c.fillStyle = on ? '#ffd08a' : '#2a2014'; c.beginPath(); c.arc(x,y,S*.065,0,TAU); c.fill(); brass(1.5); c.beginPath(); c.arc(x,y,S*.085,0,TAU); c.stroke(); }
+    // threats: red glass marbles
+    for (const f of M.foes){ const x = X(f.pos[0]), y = Y(f.pos[1]); c.strokeStyle = 'rgba(200,50,58,.45)'; c.lineWidth = S*.05; c.beginPath(); c.moveTo(X(f.prev[0]),Y(f.prev[1])); c.lineTo(x,y); c.stroke();
+      g = c.createRadialGradient(x-S*.03,y-S*.03,0,x,y,S*.09); g.addColorStop(0,'#ffd0d0'); g.addColorStop(.35,'#e0343e'); g.addColorStop(1,'#5a0c12'); c.fillStyle = g; c.beginPath(); c.arc(x,y,S*.09,0,TAU); c.fill(); }
+    if (M.missile){ const x = X(M.missile.pos[0]), y = Y(M.missile.pos[1]); c.strokeStyle = 'rgba(255,236,190,.7)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(X(M.missile.from[0]),Y(M.missile.from[1])); c.lineTo(x,y); c.stroke(); c.fillStyle = '#fff6dc'; c.beginPath(); c.arc(x,y,S*.035,0,TAU); c.fill(); }
+    // satellite carriage: glass jewel and six filament bulbs
+    c.fillStyle = '#8a6424'; c.beginPath(); c.arc(sx,sy,S*.13,0,TAU); c.fill(); brass(2); c.stroke();
+    glow(c,sx,sy,S*.4,'rgba(143,233,255,.9)',M.lit ? .55 : .15); g = c.createRadialGradient(sx-S*.03,sy-S*.03,0,sx,sy,S*.08); g.addColorStop(0,'#ffffff'); g.addColorStop(.5,'#8fe9ff'); g.addColorStop(1,'#1b6f86'); c.fillStyle = g; c.beginPath(); c.arc(sx,sy,S*.08,0,TAU); c.fill();
+    for (let i=0;i<6;i++){ const a = i*TAU/6+M.t*.4, x = sx+cos(a)*S*.22, y = sy+sin(a)*S*.22, on = i<M.charge; if (on && M.lit) glow(c,x,y,S*.09,'rgba(255,200,110,.95)',.8); c.fillStyle = on ? (M.lit ? '#ffe2a8' : '#b08a4a') : '#2b2214'; c.beginPath(); c.arc(x,y,S*.03,0,TAU); c.fill(); }
+    // burst: a magnesium flash that lights the brass
+    if (M.burst){ const b = M.burst, pts = [M.B].concat(b.bt>.1 ? M.kills : []); c.globalCompositeOperation = 'lighter';
+      pts.forEach((q,i) => { const x = X(q[0]), y = Y(q[1]), r = S*b.r*(i ? .55 : 1); glow(c,x,y,r*1.9,'rgba(255,214,150,.9)',b.a*.5); g = c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.45,'rgba(255,226,160,.85)'); g.addColorStop(1,'rgba(255,170,70,0)'); c.globalAlpha = b.a; c.fillStyle = g; c.beginPath(); c.arc(x,y,r,0,TAU); c.fill();
+        if (!i){ c.strokeStyle = 'rgba(255,236,190,.8)'; c.lineWidth = 1.2; for (const k of [1.25,1.7]){ c.globalAlpha = b.a*.6; c.beginPath(); c.arc(x,y,S*.62*k*Math.min(1,b.bt*1.6+.2),0,TAU); c.stroke(); }
+          c.globalAlpha = b.a*.8; c.lineWidth = 1.5; for (let j=0;j<4;j++){ const a = j*Math.PI/2+.4; c.beginPath(); c.moveTo(x-cos(a)*r*2.2,y-sin(a)*r*2.2); c.lineTo(x+cos(a)*r*2.2,y+sin(a)*r*2.2); c.stroke(); } } });
+      c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
+    g = c.createRadialGradient(cx,cy,h*.3,cx,cy,w*.75); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.55)'); c.fillStyle = g; c.fillRect(0,0,w,h);
+  },
+  /* ---- B: gouache storybook ---- */
+  story(c,w,h,M){
+    const S = h/5.3, cx = w*.44, cy = h*.53, X = x => cx+x*S, Y = y => cy-y*S;
+    let g = c.createLinearGradient(0,0,w,h); g.addColorStop(0,'#22364d'); g.addColorStop(1,'#141f30'); c.fillStyle = g; c.fillRect(0,0,w,h);
+    glow(c,-w*.1,h*.3,w*.7,'rgba(232,220,192,.5)',.35);
+    c.fillStyle = 'rgba(8,14,24,.42)'; c.beginPath(); c.moveTo(X(.3),Y(.98)); c.quadraticCurveTo(X(2),Y(1.2),w,Y(1.15)); c.lineTo(w,Y(-1.15)); c.quadraticCurveTo(X(2),Y(-1.2),X(.3),Y(-.98)); c.fill();
+    c.strokeStyle = '#e8dcc0'; c.lineCap = 'round';
+    for (let i=0;i<60;i++){ const x = rand(i)*w, y = rand(i+99)*h, s = (1.5+rand(i+7)*3)*(.7+.3*sin(M.t*1.5+i)); c.globalAlpha = .25+rand(i+3)*.5; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x-s,y); c.lineTo(x+s,y); c.moveTo(x,y-s); c.lineTo(x,y+s); c.stroke(); }
+    c.globalAlpha = .5; c.fillStyle = '#e8dcc0'; for (let i=0;i<64;i++){ const a = i/64*TAU; c.beginPath(); c.arc(cx+cos(a)*S*(1.8+rand(i)*.02),cy+sin(a)*S*(1.8+rand(i+5)*.02),1.3,0,TAU); c.fill(); } c.globalAlpha = 1;
+    // the planet: wobbly, painted, with a daylight wash
+    blob(c,cx,cy,S,1.3,.018); c.fillStyle = '#3f6f6a'; c.fill(); c.save(); c.clip();
+    for (let i=0;i<5;i++){ const a = i*1.3+M.rot; blob(c,cx+cos(a)*S*.5,cy+sin(a)*S*.5,S*(.2+rand(i)*.18),i*2.1,.12,24); c.fillStyle = i%2 ? '#86a98d' : '#6f9a79'; c.fill(); }
+    c.globalAlpha = .3; c.fillStyle = '#e8dcc0'; c.beginPath(); c.arc(cx-S*.75,cy-S*.1,S*1.1,0,TAU); c.fill(); c.globalAlpha = .45; c.fillStyle = '#0c1522'; c.beginPath(); c.arc(cx+S*.95,cy+S*.1,S*1.05,0,TAU); c.fill(); c.globalAlpha = 1;
+    c.strokeStyle = 'rgba(232,220,192,.25)'; c.lineWidth = 2; for (let i=0;i<7;i++){ c.beginPath(); c.arc(cx-S*.2,cy,S*(.25+i*.11),2.4+i*.1,3.3+i*.08); c.stroke(); } c.restore();
+    // houses you could count
+    for (let i=0;i<6;i++){ const a = i*TAU/6+.3+M.rot, on = i!==4, night = cos(a)>-.2; c.save(); c.translate(X(cos(a)),Y(sin(a))); c.rotate(-a+Math.PI/2);
+      if (on && night) glow(c,0,-S*.08,S*.3,'rgba(228,160,74,.9)',.55);
+      for (let j=-1;j<=1;j++){ const hw = S*.045, hh = S*(.07+rand(i*3+j)*.05), x = j*S*.11; c.fillStyle = on ? '#e8dcc0' : '#4a5563'; c.fillRect(x-hw,-hh,hw*2,hh+2); c.fillStyle = on ? '#d9654b' : '#394350'; c.beginPath(); c.moveTo(x-hw*1.3,-hh); c.lineTo(x,-hh-hw*1.3); c.lineTo(x+hw*1.3,-hh); c.fill();
+        c.fillStyle = on ? (night ? '#ffc35c' : '#b98f52') : '#2a323d'; c.fillRect(x-hw*.4,-hh*.7,hw*.8,hw*.8); } c.restore(); }
+    // chalk comets
+    for (const f of M.foes){ const x = X(f.pos[0]), y = Y(f.pos[1]), px = X(f.prev[0]), py = Y(f.prev[1]); c.strokeStyle = '#d9654b'; c.lineWidth = 2.5; c.setLineDash([5,6]); for (const k of [-3,0,3]){ c.globalAlpha = k ? .35 : .7; c.beginPath(); c.moveTo(px+(px-x)*.8+k,py+(py-y)*.8-k); c.lineTo(x,y); c.stroke(); } c.setLineDash([]); c.globalAlpha = 1;
+      blob(c,x,y,S*.085,f.o*3,.08,16); c.fillStyle = '#d9654b'; c.fill(); c.fillStyle = '#f3c6a8'; c.beginPath(); c.arc(x-1,y-1,S*.03,0,TAU); c.fill(); }
+    if (M.missile){ const x = X(M.missile.pos[0]), y = Y(M.missile.pos[1]); c.strokeStyle = '#e8dcc0'; c.lineWidth = 2; c.setLineDash([2,6]); c.beginPath(); c.moveTo(X(M.missile.from[0]),Y(M.missile.from[1])); c.lineTo(x,y); c.stroke(); c.setLineDash([]); c.fillStyle = '#fff3d6'; c.beginPath(); c.arc(x,y,S*.04,0,TAU); c.fill(); }
+    // the lantern
+    const sx = X(M.sat[0]), sy = Y(M.sat[1]); glow(c,sx,sy,S*.55,'rgba(228,160,74,.9)',M.lit ? .55 : .18);
+    c.fillStyle = '#e8dcc0'; c.save(); c.translate(sx,sy); c.rotate(-M.sa); c.fillRect(-S*.035,-S*.24,S*.07,S*.12); c.fillRect(-S*.035,S*.12,S*.07,S*.12); c.restore();
+    blob(c,sx,sy,S*.105,2,.05,20); c.fillStyle = M.lit ? '#e4a04a' : '#8c6a3c'; c.fill(); c.fillStyle = M.lit ? '#fff3d6' : '#c9b48a'; c.beginPath(); c.arc(sx,sy,S*.045,0,TAU); c.fill();
+    for (let i=0;i<6;i++){ const a = i*TAU/6+M.t*.4; c.fillStyle = i<M.charge ? '#ffd58a' : 'rgba(232,220,192,.25)'; c.beginPath(); c.arc(sx+cos(a)*S*.2,sy+sin(a)*S*.2,i<M.charge ? 2.6 : 1.6,0,TAU); c.fill(); }
+    // a painted bloom
+    if (M.burst){ const b = M.burst, pts = [M.B].concat(b.bt>.1 ? M.kills : []);
+      pts.forEach((q,i) => { const x = X(q[0]), y = Y(q[1]), r = S*b.r*(i ? .55 : 1); c.globalAlpha = b.a*.55; blob(c,x,y,r*1.15,i*4+1,.07); c.fillStyle = '#d9654b'; c.fill(); c.globalAlpha = b.a*.8; blob(c,x,y,r*.8,i*4+2,.09); c.fillStyle = '#e4a04a'; c.fill(); c.globalAlpha = b.a; blob(c,x,y,r*.42,i*4+3,.1); c.fillStyle = '#fff3d6'; c.fill();
+        if (!i){ c.strokeStyle = '#fff3d6'; c.lineWidth = 2; for (let j=0;j<9;j++){ const a = j*TAU/9+.2, r0 = r*1.25, r1 = r*(1.45+rand(j)*.3); c.beginPath(); c.moveTo(x+cos(a)*r0,y+sin(a)*r0); c.lineTo(x+cos(a)*r1,y+sin(a)*r1); c.stroke(); } } }); c.globalAlpha = 1; }
+    grain(c,w,h,.16,'overlay');
+  },
+  /* ---- C: two-ink print ---- */
+  riso(c,w,h,M){
+    const S = h/5.3, cx = w*.44, cy = h*.53, X = x => cx+x*S, Y = y => cy-y*S, BL = '#2438c8', PK = '#ff4b72', YL = '#ffc02e', mis = 3;
+    c.fillStyle = '#efe9db'; c.fillRect(0,0,w,h); c.globalCompositeOperation = 'multiply';
+    c.fillStyle = c.createPattern(dots,'repeat'); c.globalAlpha = .55; c.fillRect(X(.2),Y(1),w,S*2); c.globalAlpha = 1;      // shadow lane as halftone
+    c.strokeStyle = BL; c.lineWidth = 2; c.beginPath(); c.arc(cx,cy,S*1.8,0,TAU); c.stroke();
+    c.fillStyle = PK; for (let i=0;i<26;i++){ const x = rand(i)*w, y = rand(i+50)*h, s = 2+rand(i+9)*3; c.beginPath(); c.moveTo(x,y-s); c.lineTo(x+s*.4,y); c.lineTo(x,y+s); c.lineTo(x-s*.4,y); c.fill(); }
+    c.fillStyle = BL; c.beginPath(); c.arc(cx,cy,S,0,TAU); c.fill();
+    c.globalCompositeOperation = 'source-over'; c.save(); c.beginPath(); c.arc(cx,cy,S,0,TAU); c.clip(); c.fillStyle = '#efe9db';
+    for (let i=0;i<5;i++){ const a = i*1.3+M.rot; blob(c,cx+cos(a)*S*.5,cy+sin(a)*S*.5,S*(.18+rand(i)*.16),i*2.1,.14,20); c.fill(); }
+    c.globalCompositeOperation = 'multiply'; c.fillStyle = c.createPattern(dots,'repeat'); c.fillRect(cx+S*.05,cy-S,S,S*2); c.restore(); c.globalCompositeOperation = 'multiply';
+    for (let i=0;i<6;i++){ const a = i*TAU/6+.3+M.rot, on = i!==4; c.save(); c.translate(X(cos(a)),Y(sin(a))); c.rotate(-a+Math.PI/2);
+      for (let j=-1;j<=1;j++){ const bw = S*.07, bh = S*(.1+rand(i*3+j)*.1); if (on){ c.fillStyle = YL; c.fillRect(j*S*.09-bw/2,-bh,bw,bh); } c.strokeStyle = PK; c.lineWidth = 1.5; c.strokeRect(j*S*.09-bw/2+mis,-bh-mis*.6,bw,bh); } c.restore(); }
+    for (const f of M.foes){ const x = X(f.pos[0]), y = Y(f.pos[1]), dx = x-X(f.prev[0]), dy = y-Y(f.prev[1]), d = Math.hypot(dx,dy)||1, ux = dx/d, uy = dy/d, s = S*.13;
+      c.fillStyle = PK; c.beginPath(); c.moveTo(x+ux*s,y+uy*s); c.lineTo(x-ux*s*.6-uy*s*.6,y-uy*s*.6+ux*s*.6); c.lineTo(x-ux*s*.6+uy*s*.6,y-uy*s*.6-ux*s*.6); c.fill();
+      c.strokeStyle = PK; c.lineWidth = 2; for (const k of [-.5,0,.5]){ c.beginPath(); c.moveTo(x-ux*s*1.2-uy*s*k,y-uy*s*1.2+ux*s*k); c.lineTo(x-ux*s*(2.6+Math.abs(k)*-1.2)-uy*s*k,y-uy*s*(2.6+Math.abs(k)*-1.2)+ux*s*k); c.stroke(); } }
+    if (M.missile){ const x = X(M.missile.pos[0]), y = Y(M.missile.pos[1]); c.strokeStyle = BL; c.lineWidth = 2.5; c.setLineDash([7,5]); c.beginPath(); c.moveTo(X(M.missile.from[0]),Y(M.missile.from[1])); c.lineTo(x,y); c.stroke(); c.setLineDash([]); c.fillStyle = BL; c.beginPath(); c.arc(x,y,S*.045,0,TAU); c.fill(); }
+    const sx = X(M.sat[0]), sy = Y(M.sat[1]), d = S*.14, dia = (ox,oy) => { c.beginPath(); c.moveTo(sx+ox,sy-d+oy); c.lineTo(sx+d+ox,sy+oy); c.lineTo(sx+ox,sy+d+oy); c.lineTo(sx-d+ox,sy+oy); c.closePath(); };
+    dia(0,0); c.fillStyle = PK; c.fill(); dia(mis,-mis*.6); c.strokeStyle = BL; c.lineWidth = 2; c.stroke();
+    for (let i=0;i<6;i++){ const a = i*TAU/6+M.t*.4, x = sx+cos(a)*S*.27, y = sy+sin(a)*S*.27; c.beginPath(); c.arc(x,y,S*.035,0,TAU); if (i<M.charge && M.lit){ c.fillStyle = YL; c.fill(); } c.strokeStyle = BL; c.lineWidth = 1.2; c.stroke(); }
+    if (M.burst){ const b = M.burst, pts = [M.B].concat(b.bt>.1 ? M.kills : []); c.globalAlpha = b.a;
+      const star = (x,y,r,n,ox,oy) => { c.beginPath(); for (let j=0;j<n*2;j++){ const a = j*Math.PI/n+.2, rr = j%2 ? r*.62 : r; j ? c.lineTo(x+ox+cos(a)*rr,y+oy+sin(a)*rr) : c.moveTo(x+ox+cos(a)*rr,y+oy+sin(a)*rr); } c.closePath(); };
+      pts.forEach((q,i) => { const x = X(q[0]), y = Y(q[1]), r = S*b.r*(i ? .55 : 1.15); star(x,y,r,i?8:14,0,0); c.fillStyle = PK; c.fill(); c.fillStyle = YL; c.beginPath(); c.arc(x,y,r*.42,0,TAU); c.fill(); star(x,y,r,i?8:14,mis+1,-mis); c.strokeStyle = BL; c.lineWidth = 2; c.stroke(); }); c.globalAlpha = 1; }
+    c.globalCompositeOperation = 'source-over'; grain(c,w,h,.14,'multiply');
+  },
+  /* ---- D: the current build ---- */
+  night(c,w,h,M){
+    const S = h/5.3, cx = w*.44, cy = h*.53, X = x => cx+x*S, Y = y => cy-y*S;
+    c.fillStyle = '#05060f'; c.fillRect(0,0,w,h); glow(c,-w*.15,h*.4,w*.8,'rgba(255,214,160,.5)',.3);
+    c.fillStyle = 'rgba(5,6,15,.6)'; c.fillRect(X(.2),Y(1),w,S*2);
+    c.fillStyle = '#cfd6ff'; for (let i=0;i<110;i++){ c.globalAlpha = .3+rand(i+3)*.6; c.fillRect(rand(i)*w,rand(i+50)*h,1.4,1.4); } c.globalAlpha = 1;
+    c.strokeStyle = 'rgba(127,233,255,.25)'; c.lineWidth = 1; c.beginPath(); c.arc(cx,cy,S*1.8,0,TAU); c.stroke();
+    glow(c,cx,cy,S*1.28,'rgba(110,170,255,.55)',.9);
+    let g = c.createLinearGradient(cx-S,0,cx+S,0); g.addColorStop(0,'#3f86d9'); g.addColorStop(.5,'#17467f'); g.addColorStop(.72,'#081a35'); g.addColorStop(1,'#03070f'); c.fillStyle = g; c.beginPath(); c.arc(cx,cy,S,0,TAU); c.fill();
+    c.save(); c.beginPath(); c.arc(cx,cy,S,0,TAU); c.clip(); for (let i=0;i<5;i++){ const a = i*1.3+M.rot, x = cx+cos(a)*S*.5; blob(c,x,cy+sin(a)*S*.5,S*(.18+rand(i)*.16),i*2.1,.14,20); c.fillStyle = x<cx+S*.2 ? 'rgba(61,130,87,.9)' : 'rgba(20,50,40,.9)'; c.fill(); } c.restore();
+    c.globalCompositeOperation = 'lighter';
+    for (let i=0;i<6;i++){ if (i===4) continue; const a = i*TAU/6+.3+M.rot; glow(c,X(cos(a)*1.02),Y(sin(a)*1.02),S*.26,'rgba(255,190,90,1)',.8); }
+    for (const f of M.foes){ const x = X(f.pos[0]), y = Y(f.pos[1]); g = c.createLinearGradient(X(f.prev[0]),Y(f.prev[1]),x,y); g.addColorStop(0,'rgba(255,107,94,0)'); g.addColorStop(1,'#ff6b5e'); c.strokeStyle = g; c.lineWidth = 3; c.beginPath(); c.moveTo(X(f.prev[0]),Y(f.prev[1])); c.lineTo(x,y); c.stroke(); glow(c,x,y,S*.12,'#ffb0a0',1); }
+    if (M.missile){ const x = X(M.missile.pos[0]), y = Y(M.missile.pos[1]); c.strokeStyle = 'rgba(127,233,255,.7)'; c.lineWidth = 2; c.beginPath(); c.moveTo(X(M.missile.from[0]),Y(M.missile.from[1])); c.lineTo(x,y); c.stroke(); glow(c,x,y,S*.08,'#ffffff',1); }
+    const sx = X(M.sat[0]), sy = Y(M.sat[1]); glow(c,sx,sy,S*.3,'rgba(127,233,255,1)',M.lit ? .8 : .25); c.fillStyle = '#dfe6ff'; c.fillRect(sx-3,sy-3,6,6);
+    for (let i=0;i<6;i++){ const a = i*TAU/6+M.t*.4; c.fillStyle = i<M.charge ? '#7fe9ff' : 'rgba(127,233,255,.18)'; c.beginPath(); c.arc(sx+cos(a)*S*.2,sy+sin(a)*S*.2,i<M.charge ? 2.6 : 1.5,0,TAU); c.fill(); }
+    if (M.burst){ const b = M.burst, pts = [M.B].concat(b.bt>.1 ? M.kills : []);
+      pts.forEach((q,i) => { const x = X(q[0]), y = Y(q[1]), r = S*b.r*(i ? .55 : 1); g = c.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.4,i ? 'rgba(255,215,110,.8)' : 'rgba(127,233,255,.8)'); g.addColorStop(1,'rgba(0,0,0,0)'); c.globalAlpha = b.a; c.fillStyle = g; c.beginPath(); c.arc(x,y,r,0,TAU); c.fill(); c.strokeStyle = i ? '#ffd76e' : '#7fe9ff'; c.lineWidth = 1.5; c.beginPath(); c.arc(x,y,r,0,TAU); c.stroke(); }); c.globalAlpha = 1; }
+    c.globalCompositeOperation = 'source-over';
+  },
+};
+
+const boards = [...document.querySelectorAll('canvas[data-style]')].map(cv => ({cv, ctx:cv.getContext('2d'), draw:STYLES[cv.dataset.style], on:true}));
+function fit(b){ const r = b.cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio||1); if (!r.width) return; b.cv.width = Math.round(r.width*d); b.cv.height = Math.round(r.height*d); }
+boards.forEach(fit); addEventListener('resize', () => boards.forEach(fit));
+if ('IntersectionObserver' in window){ const io = new IntersectionObserver(es => es.forEach(e => { const b = boards.find(b => b.cv===e.target); if (b) b.on = e.isIntersecting; }), {rootMargin:'120px'}); boards.forEach(b => io.observe(b.cv)); }
+function frame(now){ const t = reduce ? 2.25 : now/1000, M = moment(t);
+  for (const b of boards){ if (!b.on || !b.cv.width) continue; b.ctx.setTransform(1,0,0,1,0,0); b.ctx.globalAlpha = 1; b.ctx.globalCompositeOperation = 'source-over'; b.draw(b.ctx,b.cv.width,b.cv.height,M); }
+  if (!reduce) requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+})();
+</script>

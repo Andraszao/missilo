@@ -1,0 +1,901 @@
+<title>Missilo Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: space is the page. Game stage left, director's notes rail right; stacks on phones. */
+:root{
+  color-scheme: dark;
+  --night:#05060f;      /* page ground, near-black blue */
+  --panel:#0c1026;      /* raised surfaces */
+  --line:#232a55;       /* hairlines, borders */
+  --ink:#e9ebff;        /* primary text */
+  --dim:#959cc9;        /* secondary text */
+  --lamp:#ffc66e;       /* city-light amber: the thing you protect, and the currency */
+  --threat:#ff6b5e;     /* incoming */
+  --low:#62e6ff; --mid:#8dffc0; --high:#b5b8ff;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.mark{font-family:var(--display);font-weight:800;font-size:40px;line-height:1;letter-spacing:.04em;margin:0}
+.mark span{color:var(--lamp)}
+.tag{color:var(--dim);margin:0}
+.proto{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim);border:1px solid var(--line);padding:3px 8px;border-radius:3px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}.proto{margin-left:0}}
+.stagecol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.stage{position:relative;width:100%;aspect-ratio:16/10;max-width:100%;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--night);user-select:none;-webkit-user-select:none}
+@media (max-width:820px){.stage{aspect-ratio:1/1}}
+@media (max-width:560px){.stage{aspect-ratio:4/5}}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.stage.nocursor #game{cursor:none}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px;background:rgba(5,6,15,.8);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;text-align:center}
+.ov>:first-child{margin-top:auto}.ov>:last-child{margin-bottom:auto}
+.ov h2{font-family:var(--display);font-weight:800;font-size:clamp(32px,6.4vw,60px);line-height:.95;letter-spacing:.03em;margin:0;text-wrap:balance}
+.ov h2 em{font-style:normal;color:var(--lamp)}
+.ov p{margin:0;max-width:54ch;color:var(--dim)}
+.ov p strong{color:var(--ink);font-weight:600}
+.keys{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:13px;color:var(--dim);max-width:560px}
+kbd{font-family:var(--mono);font-size:12px;color:var(--ink);border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;padding:0 5px;background:var(--panel)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.go{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.08em;text-transform:uppercase;background:var(--lamp);color:#1b1206;border:0;border-radius:3px;padding:10px 26px}
+.go:hover{filter:brightness(1.08)}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:3px;padding:8px 14px;color:var(--ink)}
+.ghost:hover{border-color:var(--dim)}
+.ghost:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center}
+/* shop */
+#ovShop{background:rgba(5,6,15,.92)}
+#ovShop h2{font-size:clamp(26px,4.4vw,40px)}
+.purse{font-family:var(--mono);font-weight:600;color:var(--lamp);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:100%;max-width:860px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:11px;display:flex;flex-direction:column;gap:5px;text-align:left;min-width:0}
+.card:not(:disabled):hover{border-color:var(--dim)}
+.card:disabled{opacity:.45;cursor:not-allowed}
+.card[aria-pressed="true"]{border-color:var(--lamp);box-shadow:inset 0 0 0 1px var(--lamp)}
+.card .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
+.card .k b{color:var(--lamp);font-weight:600}
+.kind{font-style:normal;font-weight:600}
+.kind.burst{color:var(--lamp)}.kind.star{color:var(--high)}.kind.thread{color:var(--mid)}.kind.chain{color:var(--threat)}.kind.base{color:var(--low)}.kind.planet{color:var(--ink)}
+.card h3{font-family:var(--display);font-weight:800;font-size:22px;line-height:1;letter-spacing:.03em;margin:0}
+.card .d{font-family:var(--mono);font-size:11px;line-height:1.4;color:var(--dim);flex:1}
+.card .t{font-size:13.5px;line-height:1.3;color:var(--ink);font-style:italic}
+.install{width:100%;max-width:860px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.slot{background:transparent;border:1px solid var(--line);border-radius:4px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:4px;min-width:0;font-size:13px}
+.slot:not(:disabled):hover{background:rgba(255,255,255,.05);border-color:var(--dim)}
+.slot:disabled{cursor:default;color:inherit}
+.slot.no{opacity:.4}
+.slot.wide{grid-column:1/-1;text-align:center;align-items:center}
+.slot b{font-family:var(--display);font-size:20px;letter-spacing:.04em;line-height:1}
+.slot .chips{display:flex;flex-wrap:wrap;gap:3px 10px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.slot .add{color:var(--ink);font-weight:600}
+@media (max-width:760px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){
+  .stage.flow{aspect-ratio:auto}
+  .stage.flow #ovShop{position:relative;min-height:calc((100vw - 34px)*5/4);padding:12px;gap:8px}
+  .cards{gap:6px}.card{padding:8px 9px;gap:3px}.card h3{font-size:19px}.card .t{font-size:12.5px}
+  .install{grid-template-columns:minmax(0,1fr);gap:6px}.slot{padding:8px 10px}
+}
+.stats{font-family:var(--mono);font-size:13px;color:var(--ink);display:grid;grid-template-columns:auto auto;gap:2px 18px;text-align:left;font-variant-numeric:tabular-nums}
+.stats span:nth-child(odd){color:var(--dim)}
+/* control bar */
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.bar button{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:8px 12px;font-size:13px}
+.bar button:hover{border-color:var(--dim)}
+#focusBtn{position:relative;overflow:hidden;flex:1 1 180px;text-align:left;font-weight:600}
+#focusBtn .fill{position:absolute;inset:0;width:0;background:linear-gradient(90deg,rgba(98,230,255,.16),rgba(98,230,255,.38));pointer-events:none}
+#focusBtn .lbl{position:relative}
+#focusBtn.ready{border-color:var(--low)}
+#focusBtn small{font-family:var(--mono);font-weight:400;color:var(--dim);margin-left:6px}
+/* notes rail */
+.notes{border:1px solid var(--line);border-radius:4px;background:var(--panel);display:flex;flex-direction:column;min-width:0}
+.notes .hd{padding:12px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.note{padding:14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid var(--line)}
+.note h2{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;letter-spacing:.03em;margin:0;text-wrap:balance}
+.note dl{margin:0;display:flex;flex-direction:column;gap:10px}
+.note dt{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp)}
+.note dd{margin:2px 0 0;color:var(--ink);font-size:14px}
+.chapters{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column}
+.chapters button{width:100%;display:flex;gap:10px;align-items:baseline;background:transparent;border:0;border-radius:3px;padding:6px 8px;text-align:left;color:var(--dim);font-size:13px}
+.chapters button:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+.chapters button[aria-current="true"]{color:var(--ink);background:rgba(255,198,110,.1)}
+.chapters .tm{font-family:var(--mono);font-size:12px;width:64px;flex:none;color:var(--lamp)}
+.chapters .hint{padding:2px 8px 8px;font-size:12px;color:var(--dim)}
+/* below the fold */
+.plan h2{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.03em;line-height:1;margin:16px 0 4px}
+.plan>p{color:var(--dim);max-width:65ch;margin:0 0 14px}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+.cols section{padding:14px 18px 14px 0;min-width:0}
+.cols h3{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp);margin:0 0 8px;font-weight:600}
+.cols ul,.asks{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.cols li,.asks li{color:var(--ink)}
+.cols li span,.asks li span{color:var(--dim)}
+.asks{max-width:70ch}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1 class="mark">MISSIL<span>O</span></h1>
+    <p class="tag">Three satellites. One planet. Six nights.</p>
+    <span class="proto">playable prototype v3 · design walkthrough</span>
+  </header>
+
+  <div class="main">
+    <div class="stagecol">
+      <div class="stage" id="stage">
+        <canvas id="gl" aria-hidden="true"></canvas>
+        <canvas id="game" aria-label="Missilo game field"></canvas>
+
+        <div class="ov" id="ovTitle">
+          <h2>They come from<br><em>every side.</em></h2>
+          <p>Three satellites circle the planet, each on its own orbit. <strong>Tap a point in space</strong> and one of them fires: the shot bends round the planet and bursts where you aimed. Gravity pulls everything, theirs and yours. Between nights, spend what you salvage. Nothing tells you what goes with what.</p>
+          <button class="go" id="startBtn">Begin night one</button>
+          <div class="keys">
+            <span><kbd>Click</kbd> / tap: best-placed satellite fires</span>
+            <span><kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> fire Low, Mid, High</span>
+            <span>tap a satellite's tag to lock it</span>
+            <span><kbd>Space</kbd> Focus</span>
+          </div>
+        </div>
+
+        <div class="ov" id="ovShop" hidden>
+          <h2 id="shopHead">Shop</h2>
+          <div class="row"><span class="purse" id="purse"></span><span id="shopSub" style="color:var(--dim);font-size:13px"></span></div>
+          <div class="cards" id="cards"></div>
+          <div class="install" id="install"></div>
+          <div class="row"><button class="ghost" id="rerollBtn"></button><button class="go" id="nextBtn">Next night</button></div>
+        </div>
+
+        <div class="ov" id="ovEnd" hidden>
+          <h2 id="endHead"></h2>
+          <p id="endSub"></p>
+          <div class="stats" id="endStats"></div>
+          <div class="row" id="endBtns"></div>
+        </div>
+
+        <div class="ov" id="ovPause" hidden>
+          <h2>Paused</h2>
+          <div class="install" id="pauseBattery"></div>
+          <button class="go" id="resumeBtn">Resume</button>
+        </div>
+
+        <div class="ov" id="ovErr" hidden><h2>3D failed to start</h2><p id="errMsg"></p></div>
+      </div>
+
+      <div class="bar">
+        <button id="focusBtn" title="Slow everything but your shots for five seconds. Charged by chains."><span class="fill" id="focusFill"></span><span class="lbl">Focus <small id="focusPct">0%</small></span></button>
+        <button id="pauseBtn">Pause</button>
+        <button id="muteBtn">Sound: on</button>
+        <button id="skipBtn" title="Walkthrough shortcut: end this night now">Skip night</button>
+      </div>
+    </div>
+
+    <aside class="notes" aria-label="Director's notes">
+      <div class="hd">Director's notes · follows the game</div>
+      <div class="note" id="note" aria-live="polite"></div>
+      <ol class="chapters" id="chapters"></ol>
+    </aside>
+  </div>
+
+  <section class="plan">
+    <h2>Where this sits</h2>
+    <p>Orbit, gravity-curved shots and roguelite nights with a shop between is a lane, and this prototype competes in it directly. What follows is what Missilo brings to that lane and what is still missing.</p>
+    <div class="cols">
+      <section>
+        <h3>What we bring</h3>
+        <ul>
+          <li>Three launchers, three orbits, three builds. <span>Which build is over the dark side right now is a question every few seconds.</span></li>
+          <li>Aim a point, burst, chain. <span>The demo's verb survives the move to orbit intact.</span></li>
+          <li>Gravity on both sides. <span>Incoming hooks and slingshots; your shots inherit orbital speed and bend round the planet.</span></li>
+          <li>Items that compose. <span>Each is pure data applied to the shot, so anything stacks with anything and synergies are found, not listed.</span></li>
+          <li>3D glowing blasts that light the night side.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>From the demo</h3>
+        <ul>
+          <li>Interceptor that detonates where you pointed.</li>
+          <li>Three launchers, six cities, same loss rule.</li>
+          <li>Chain reactions with shrinking generations.</li>
+          <li>Speed Boost, Blast Radius, Extra Ammo <span>as the three starting traits.</span></li>
+          <li>Emissive sphere explosions with glow.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Not in this prototype</h3>
+        <ul>
+          <li>Orbit mods: <span>raise, lower, reverse or park a satellite.</span></li>
+          <li>Moons and other bodies <span>that bend paths and can be used as cover.</span></li>
+          <li>A hundred or more items, <span>including ones that change orbits, add triggers (on kill, on miss, on eclipse) and transform other items.</span></li>
+          <li>Different planets per run: <span>heavier gravity, rings, two suns.</span></li>
+          <li>Real art, music, controller support, saves.</li>
+        </ul>
+      </section>
+    </div>
+    <h2>What I need from you</h2>
+    <ol class="asks">
+      <li>Does the orbital version feel like the game? <span>Especially: do the three orbits matter to you while playing?</span></li>
+      <li>How much should the player fight gravity? <span>Right now shots steer themselves to the point you tapped. A harder version makes you lead the curve yourself.</span></li>
+      <li>How cryptic should items be? <span>Right now each shows a flavour line and a terse effect. Isaac shows only the flavour line.</span></li>
+      <li>Engine for the real build. <span>Godot 4.5 handles this natively.</span></li>
+    </ol>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), cv = $('#game'), ctx = cv.getContext('2d');
+// World: planet at the origin, y up. RP planet radius, R0 spawn radius, VIEW half-extent shown on the short side.
+const RP = 110, R0 = 560, VIEW = 480, GM = 400000, ROTW = .05, SDT = .05;
+let CW = 800, CH = 500, DPR = 1, KC = .5, KD = .5, U = 1;   // css size, dpr, px per unit (css, device), small-screen scale
+const rnd = (a,b) => a + Math.random()*(b-a), clamp = (v,a,b) => Math.max(a, Math.min(b,v)), lerp = (a,b,t) => a+(b-a)*t;
+const wrap = a => { while (a>Math.PI) a -= 6.2832; while (a<-Math.PI) a += 6.2832; return a; };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- data ---------- */
+const SAT_DEF = [
+  {name:'Low',  key:'A', r:172, color:'#62e6ff', start:'fast', a0:.6},
+  {name:'Mid',  key:'S', r:218, color:'#8dffc0', start:'wide', a0:2.7},
+  {name:'High', key:'D', r:266, color:'#b5b8ff', start:'ammo', a0:4.8},
+];
+const V0 = [34,38,42,46,50,54];
+const CHAIN_R = [40,31,25,20];
+const NIGHTS = [
+  {name:'First night', brief:'Tap a point in space. The best-placed satellite fires, and the shot bends round the planet if it has to.',
+   script:[[1.5,'fan',3],[7,'fan',3],[12.5,'conv',3],[18,'fan',4],[23,'fan',4]]},
+  {name:'Splitters', brief:'Violet splitters break into three as they fall. Most of what comes at you comes out of the dark side.',
+   script:[[1.5,'fan',4],[5,'split',1],[9,'fan',4],[14,'conv',4],[18,'split',2],[23,'fan',5],[27,'split',1]]},
+  {name:'Orbiters', brief:'Pink orbiters miss on purpose, swing round the planet and come down on the far side.',
+   script:[[1.5,'fan',4],[5,'orbit',2],[9,'split',1],[12,'fan',5],[16,'orbit',2],[19,'conv',4],[23,'split',1],[25,'orbit',3],[28,'fan',5]]},
+  {name:'Hunters', brief:'White hunters ignore the cities and go for a satellite. A satellite that gets hit is out for the night.',
+   script:[[1.5,'fan',4],[5,'dart',2],[8,'split',2],[11,'orbit',2],[14,'dart',2],[17,'conv',5],[21,'split',1],[22,'dart',2],[26,'fan',5]]},
+  {name:'Carriers', brief:'Carriers take two hits, then go up in the biggest blast in the sky. Use them.',
+   script:[[1.5,'heavy',4],[7,'dart',2],[10,'orbit',3],[13,'split',2],[16,'heavy',5],[21,'conv',5],[24,'dart',2],[27,'heavy',4],[31,'fan',5]]},
+  {name:'Last night', brief:'Everything, from every side. Hold until dawn.',
+   script:[[1.5,'heavy',5],[5,'fan',6],[8,'dart',3],[11,'orbit',3],[14,'split',3],[18,'conv',6],[21,'heavy',5],[25,'dart',3],[28,'orbit',3],[31,'split',3],[35,'heavy',6]]},
+];
+// Items are data. Each is a list of operations on a shot spec: [key, 'mul'|'add', value].
+// A satellite's shot is BASE folded through every item it carries, once per copy. Nothing knows about anything else,
+// so nothing is special-cased and everything stacks, including with itself.
+const BASE = {speed:380, radius:42, ammo:10, count:1, echo:0, well:0, burn:0, recycle:0, starLife:4.5, reach:170, cuts:0, live:0};
+const CARDS = {
+  fast:   {name:'Hot Motor',     kind:'base',   kl:'Flight',   scope:'sat', tag:'Gets there first.',          desc:'Speed up.',                         ops:[['speed','mul',1.5]]},
+  ammo:   {name:'Deep Magazine', kind:'base',   kl:'Magazine', scope:'sat', tag:'More where that came from.', desc:'+3 interceptors a night.',          ops:[['ammo','add',3]]},
+  wide:   {name:'Wide Charge',   kind:'burst',  kl:'Burst',    scope:'sat', tag:'Room for everyone.',         desc:'Blast radius up.',                  ops:[['radius','mul',1.3]]},
+  burn:   {name:'Long Burn',     kind:'burst',  kl:'Burst',    scope:'sat', tag:'The long way round.',        desc:'Bursts grow with distance flown.',  ops:[['burn','add',1]]},
+  twin:   {name:'Twin Rail',     kind:'burst',  kl:'Burst',    scope:'sat', tag:'Never fly alone.',           desc:'+1 interceptor per shot.',          ops:[['count','add',1]]},
+  echo:   {name:'Echo',          kind:'burst',  kl:'Burst',    scope:'sat', tag:'Says it twice.',             desc:'Bursts repeat.',                    ops:[['echo','add',1]]},
+  well:   {name:'Gravity Well',  kind:'burst',  kl:'Burst',    scope:'sat', tag:'Everything falls.',          desc:'Bursts leave a well.',              ops:[['well','add',1]]},
+  recycle:{name:'Recycler',      kind:'chain',  kl:'Chain',    scope:'sat', tag:'Waste not.',                 desc:'Chains of 3 return an interceptor.',ops:[['recycle','add',1]]},
+  con:    {name:'Constellations',kind:'planet', kl:'Planet',   scope:'all', tag:'The sky remembers.',         desc:'Bursts leave stars. Stars link. Three close.', once:true},
+  slow:   {name:'Slow Star',     kind:'star',   kl:'Star',     scope:'sat', need:'con', tag:'Patience.',      desc:'Stars burn longer.',                ops:[['starLife','mul',2]]},
+  reach:  {name:'Long Reach',    kind:'star',   kl:'Star',     scope:'sat', need:'con', tag:'Further apart.', desc:'Stars link from farther.',          ops:[['reach','mul',1.4]]},
+  razor:  {name:'Razor Thread',  kind:'thread', kl:'Thread',   scope:'sat', need:'con', tag:'Stays sharp.',   desc:'Threads cut more.',                 ops:[['cuts','add',2]]},
+  live:   {name:'Live Wire',     kind:'thread', kl:'Thread',   scope:'sat', need:'con', tag:'Do not touch.',  desc:'A cut thread bursts at its ends.',  ops:[['live','add',1]]},
+  reactor:{name:'Chain Reactor', kind:'planet', kl:'Planet',   scope:'all', tag:'One thing leads to another.',desc:'Chain blasts grow.'},
+  cap:    {name:'Capacitor',     kind:'planet', kl:'Planet',   scope:'all', tag:'Breathe.',                   desc:'Focus charges faster.'},
+  relight:{name:'Relight',       kind:'planet', kl:'Planet',   scope:'all', tag:'Someone is home.',           desc:'One dark city comes back.'},
+};
+function compose(s){ const sp = {...BASE}; for (const k in s.mods) for (let n=0;n<s.mods[k];n++) for (const [key,op,v] of CARDS[k].ops||[]) sp[key] = op==='mul' ? sp[key]*v : sp[key]+v; s.sp = sp; return sp; }
+const NOTES = {
+  pitch:{tm:'pitch', title:'The whole planet, three orbits',
+    now:'You see the planet from above its pole. Six cities sit on the rim and turn with it. Three satellites circle at different heights and speeds, and threats arrive from all round, mostly from the dark side.',
+    demo:'Aim-and-burst interception, three launchers, six cities, chain reactions, glowing 3D blasts and three stat modifiers all come from the Godot project.',
+    next:'Orbit, gravity and nights with a shop is a lane other games are in. The bet is that three diverging builds on three orbits, with a shop built round synergies, is the best version of it.'},
+  h0:{tm:'night 1', title:'Aim, arc, burst',
+    now:'Tap a point. The satellite that can get a shot there soonest fires. The shot leaves with the satellite\'s orbital speed, so it swings, and if the planet is in the way it goes round. On desktop the dotted line is the path it will take.',
+    demo:'The demo\'s verb, unchanged: pick a point, lead the target, burst. What changed is that the launchers move and the planet blocks.',
+    next:'The low satellite laps the planet in about 22 seconds, the high one in about 43. Which one is near the threat changes constantly, and that is the texture the flat version never had.'},
+  shop:{tm:'shop', title:'Items stack. Nobody tells you how',
+    now:'Kills and chains pay salvage. Each item has a name, a line of flavour and a terse effect. Buy it, pick a satellite, find out. Take the same item twice and it stacks on itself.',
+    demo:'<code>MissileModifier</code> and <code>calculate_stats()</code> already fold a list of modifiers into one stats dictionary. That is the seed of this, and the three starting traits are the demo\'s three <code>.tres</code> files.',
+    next:'Every item is data: a list of operations on the shot. A shot is the base folded through whatever the satellite carries. No item knows about any other, so combinations are never written, only found. Echo repeats a burst, and a burst is what drops a Gravity Well, so two Echoes and a Well is three wells. Nobody coded that.'},
+  h1:{tm:'night 2', title:'Splitters and the dark side',
+    now:'Splitters break into three as they fall. Notice where things come from: about three in four arrive out of the night side, on the right.',
+    demo:'<code>WaveConfig.special_modifiers</code> lists "split_on_death" as a future hook. <code>targeting_strategy</code> was another. Both are real here.',
+    next:'A dark side gives the sky a shape. You start caring which satellite is about to cross into it.'},
+  h2:{tm:'night 3', title:'Orbiters use the gravity',
+    now:'Pink orbiters come in wide, miss, and spiral round before they land. They pass through your satellites\' orbits on the way.',
+    demo:'Nothing like it in the demo, where every missile flew a straight line to a random x.',
+    next:'This is the threat a flat field cannot have. Long Burn and Gravity Well are the items written for it.'},
+  h3:{tm:'night 4', title:'Hunters go for the satellites',
+    now:'White hunters chase one satellite. If it is hit, it and its build are gone until the next night.',
+    demo:'In the demo a destroyed silo is gone for the run, which turns one early mistake into a slow loss. Here it costs you the night.',
+    next:'A moving launcher being hunted is a small chase scene. Later, orbit mods let you dodge.'},
+  h4:{tm:'night 5', title:'Enemies as ammunition',
+    now:'A carrier soaks two hits, then goes up in the largest blast in the game. Crack it early and finish it when its escort is close.',
+    demo:'<code>MissileData</code> already has <code>health</code> and <code>impact_radius</code> fields that nothing reads.',
+    next:'Threats that are also tools. A carrier blast near the surface lights half the night side.'},
+  h5:{tm:'night 6', title:'The last night',
+    now:'Every threat type, from every side, with whatever you bought. Chains charge Focus: five seconds where everything slows but your shots.',
+    demo:'The demo ends at wave 10 with a console line.',
+    next:'The full game ends each run on a set piece specific to the planet you were defending.'},
+  dawn:{tm:'dawn', title:'Dawn',
+    now:'The count comes in: cities still lit, best chain, salvage, shots fired.',
+    demo:'Score in the demo was 25 per kill plus a flat end-of-wave bonus.',
+    next:'The section below lists what Missilo brings to this lane and what I need from you.'},
+};
+const CHAPTER_ORDER = ['pitch','h0','shop','h1','h2','h3','h4','h5','dawn'];
+
+/* ---------- state ---------- */
+const g = {state:'title', hour:0, score:0, scrap:0, time:0, rot:0, waveT:0, queue:[], enemies:[], missiles:[], blasts:[], parts:[], floats:[], stars:[], threads:[], tris:[], wells:[],
+  focus:0, focusT:0, shake:0, flash:0, flash2:0, lock:-1, mx:0, my:300, mouse:false, paused:false, reactor:0, cap:0, con:0, bestChain:0, kills:0, shots:0, earned:0,
+  introT:0, tallyT:0, tally:null, dawnT:0, lostT:0, chainMsg:null, eid:0, note:'pitch', reroll:3};
+let sats = [], cities = [];
+function newRun(){
+  sats = SAT_DEF.map((d,i) => ({...d,i,ang:d.a0,w:Math.sqrt(GM/(d.r*d.r*d.r)),x:0,y:0,mods:{},sp:null,ammo:0,online:true,recoil:0}));
+  sats.forEach(s => { s.mods[s.start] = 1; compose(s); place(s); });
+  cities = [0,1,2,3,4,5].map(i => ({i,th:i*1.0472+.3,alive:true}));
+  Object.assign(g,{hour:0,score:0,scrap:0,focus:0,focusT:0,reactor:0,cap:0,con:0,bestChain:0,kills:0,shots:0,earned:0,lock:-1,dawnT:0,reroll:3});
+}
+function place(s){ s.x = s.r*Math.cos(s.ang); s.y = s.r*Math.sin(s.ang); }
+const maxAmmo = s => s.sp.ammo, satStats = s => s.sp;
+// where a shot's interceptors land: spread across the line perpendicular to the planet
+function aimPoints(s,x,y){ const n = s.sp.count, a = Math.atan2(y,x), ox = -Math.sin(a)*s.sp.radius*1.5, oy = Math.cos(a)*s.sp.radius*1.5, out = [];
+  for (let i=0;i<n;i++){ const k = i-(n-1)/2; out.push(clampAim(x+ox*k,y+oy*k)); } return out; }
+const modKeys = s => Object.keys(s.mods).filter(k => s.mods[k]);
+const cityAng = c => c.th + g.rot;
+
+/* ---------- audio ---------- */
+let ac = null, master = null, muted = false;
+function audioInit(){ if (ac) { if (ac.state==='suspended') ac.resume(); return; }
+  try { ac = new (window.AudioContext||window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = .5; master.connect(ac.destination); } catch(e){ ac = null; } }
+function tone(f, d, type, v, to){ if (!ac || muted) return; const t = ac.currentTime, o = ac.createOscillator(), a = ac.createGain();
+  o.type = type||'sine'; o.frequency.setValueAtTime(f,t); if (to) o.frequency.exponentialRampToValueAtTime(to,t+d);
+  a.gain.setValueAtTime(v||.2,t); a.gain.exponentialRampToValueAtTime(.001,t+d); o.connect(a); a.connect(master); o.start(t); o.stop(t+d+.02); }
+let noiseBuf = null;
+function noise(d, v, fc, to){ if (!ac || muted) return; if (!noiseBuf){ noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const ch = noiseBuf.getChannelData(0); for (let i=0;i<ch.length;i++) ch[i] = Math.random()*2-1; }
+  const t = ac.currentTime, n = ac.createBufferSource(), f = ac.createBiquadFilter(), a = ac.createGain(); n.buffer = noiseBuf; f.type='lowpass'; f.frequency.setValueAtTime(fc,t); if (to) f.frequency.exponentialRampToValueAtTime(to,t+d);
+  a.gain.setValueAtTime(v,t); a.gain.exponentialRampToValueAtTime(.001,t+d); n.connect(f); f.connect(a); a.connect(master); n.start(t); n.stop(t+d+.02); }
+const PENTA = [0,3,5,7,10];
+const sfx = {
+  launch(){ noise(.25,.12,2400,500); tone(520,.12,'triangle',.05,260); },
+  burst(){ tone(150,.3,'sine',.22,45); noise(.22,.14,900,200); },
+  kill(n){ const i = Math.min(n-1,14); tone(330*Math.pow(2,(PENTA[i%5]+12*Math.floor(i/5))/12),.32,'triangle',.16); noise(.12,.07,1600,400); },
+  impact(){ tone(90,.6,'sine',.35,30); noise(.5,.25,600,80); },
+  dark(){ tone(300,.7,'sawtooth',.08,70); },
+  empty(){ tone(140,.06,'square',.05); },
+  pick(){ tone(660,.12,'triangle',.14); setTimeout(() => tone(990,.2,'triangle',.12),90); },
+  focus(){ noise(.6,.12,300,3000); tone(220,.5,'sine',.1,880); },
+  crack(){ tone(700,.1,'square',.06,300); },
+  hour(){ tone(392,.5,'sine',.1); setTimeout(() => tone(523,.7,'sine',.1),200); },
+  link(){ tone(1175,.25,'sine',.07); tone(1760,.35,'sine',.04); },
+  cut(){ tone(1600,.09,'sawtooth',.04,600); },
+  close(){ [392,494,587,784].forEach((f,i) => setTimeout(() => tone(f,.6,'triangle',.12),i*45)); noise(.5,.2,400,3000); },
+};
+
+/* ---------- spawning: every incoming body flies a real gravity path ---------- */
+const TYPE = {streak:{m:1,hp:1,pts:25,col:'#ff6b5e'}, split:{m:.85,hp:1,pts:40,col:'#c58bff'}, orbit:{m:1.05,hp:1,pts:60,col:'#ff7ad9'}, dart:{m:1,hp:1,pts:50,col:'#ffffff'}, heavy:{m:.7,hp:2,pts:100,col:'#ffae42'}};
+function simImpact(x,y,vx,vy,drag){ let t = 0;
+  for (let i=0;i<1100;i++){ const r2 = x*x+y*y, r = Math.sqrt(r2); if (r<RP) return {a:Math.atan2(y,x),t}; if (r>760) return null;
+    const k = -GM/(r2*r)*SDT; vx += x*k; vy += y*k; if (drag && r<330){ vx *= 1-drag*SDT; vy *= 1-drag*SDT; } x += vx*SDT; y += vy*SDT; t += SDT; }
+  return null; }
+function spawnAngle(){ return Math.random()<.75 ? rnd(-1.5,1.5) : rnd(1.5,4.78); }   // night side faces +x
+function pickCity(){ const live = cities.filter(c => c.alive); return (live.length && Math.random()<.8) ? live[Math.random()*live.length|0] : null; }
+function launch(type, ang, city, mult){
+  const def = TYPE[type], sp = V0[g.hour]*def.m*(mult||1), x = R0*Math.cos(ang), y = R0*Math.sin(ang), px = -Math.sin(ang), py = Math.cos(ang);
+  const orbit = type==='orbit', drag = orbit ? .3 : 0;
+  const cand = orbit ? [300,320,340,-300,-320,-340] : [-240,-180,-120,-60,0,60,120,180,240];
+  let best = null, bd = 9;
+  for (const b0 of cand){ const b = b0+rnd(-18,18), dx = px*b-x, dy = py*b-y, d = Math.hypot(dx,dy), vx = dx/d*sp, vy = dy/d*sp, hit = simImpact(x,y,vx,vy,drag);
+    if (!hit) continue; const err = city ? Math.abs(wrap(hit.a-(city.th+g.rot+ROTW*hit.t))) : Math.random()*3; if (err<bd){ bd = err; best = {vx,vy}; } }
+  if (!best){ const d = Math.hypot(x,y); best = {vx:-x/d*sp, vy:-y/d*sp}; }
+  g.enemies.push({id:++g.eid,type,x,y,vx:best.vx,vy:best.vy,hp:def.hp,drag,splitR:rnd(300,360),flash:0,cut:null,spin:rnd(0,6),age:0,tgt:null});
+}
+function buildQueue(h){
+  const q = [];
+  for (const [t,kind,n] of NIGHTS[h].script){
+    if (kind==='fan'){ const a = spawnAngle(); for (let i=0;i<n;i++) q.push({t:t+i*.25,type:'streak',a:a+rnd(-.07,.07)}); }
+    else if (kind==='conv'){ const c = pickCity(); for (let i=0;i<n;i++) q.push({t:t+i*.3,type:'streak',a:spawnAngle(),c}); }
+    else if (kind==='split'){ for (let i=0;i<n;i++) q.push({t:t+i*.7,type:'split',a:spawnAngle()}); }
+    else if (kind==='orbit'){ for (let i=0;i<n;i++) q.push({t:t+i*.8,type:'orbit',a:spawnAngle()}); }
+    else if (kind==='dart'){ for (let i=0;i<n;i++) q.push({t:t+i*.55,type:'dart',a:rnd(0,6.28)}); }
+    else if (kind==='heavy'){ const a = spawnAngle(), c = pickCity(); q.push({t,type:'heavy',a,c}); for (let i=1;i<n;i++) q.push({t:t+2.2+i*.3,type:'streak',a:a+rnd(-.12,.12)}); }
+  }
+  q.sort((a,b) => a.t-b.t); return q;
+}
+
+/* ---------- stars, threads, constellations (a shop item now) ---------- */
+function addStar(x, y, sat){
+  if (!g.con || g.stars.length>=24) return;
+  const st = {id:++g.eid,x,y,sat,age:0,life:sat.sp.starLife,reach:sat.sp.reach,lock:false};
+  for (const o of g.stars){ if (o.lock) continue; const d = Math.hypot(o.x-x,o.y-y); if (d>10 && d<=(o.reach+st.reach)/2 && g.threads.length<30) addThread(o,st); }
+  g.stars.push(st); findTriangle(st);
+}
+function addThread(a, b){ const cuts = 3 + a.sat.sp.cuts + b.sat.sp.cuts; g.threads.push({a,b,cuts,flash:1,dead:false,chain:{count:0,live:1,sat:a.sat}}); sfx.link(); }
+const linked = (a,b) => g.threads.some(t => (t.a===a&&t.b===b)||(t.a===b&&t.b===a));
+function findTriangle(n){
+  const nb = g.stars.filter(o => o!==n && !o.lock && linked(n,o));
+  for (let i=0;i<nb.length;i++) for (let j=i+1;j<nb.length;j++){ const a = nb[i], b = nb[j];
+    if (!linked(a,b) || Math.abs((a.x-n.x)*(b.y-n.y)-(b.x-n.x)*(a.y-n.y))/2 < 400) continue;
+    for (const s of [n,a,b]) s.lock = true;
+    g.tris.push({p:[n,a,b],t:0,fired:false,trinity:new Set([n.sat,a.sat,b.sat]).size===3,chain:{count:0,live:1,sat:n.sat}}); sfx.close(); return; }
+}
+function dropThread(th){ if (th.dead) return; th.dead = true; const i = g.threads.indexOf(th); if (i>=0) g.threads.splice(i,1); if (--th.chain.live<=0) endChain(th.chain); }
+function removeStar(s){ const i = g.stars.indexOf(s); if (i<0) return; g.stars.splice(i,1); for (const th of g.threads.slice()) if (th.a===s || th.b===s) dropThread(th); sparks(s.x,s.y,6,s.sat.color,60); }
+function inTri(px,py,a,b,c){ const d1 = (px-b.x)*(a.y-b.y)-(a.x-b.x)*(py-b.y), d2 = (px-c.x)*(b.y-c.y)-(b.x-c.x)*(py-c.y), d3 = (px-a.x)*(c.y-a.y)-(c.x-a.x)*(py-a.y);
+  return !((d1<0||d2<0||d3<0) && (d1>0||d2>0||d3>0)); }
+function segDist(px,py,ax,ay,bx,by){ const dx = bx-ax, dy = by-ay, t = clamp(((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1),0,1); return Math.hypot(px-(ax+dx*t),py-(ay+dy*t)); }
+
+/* ---------- interceptors: inherit orbital velocity, steer to the tapped point, go round the planet ---------- */
+function stepMissile(m, dt){
+  let tx = m.tx, ty = m.ty;
+  if (segDist(0,0,m.x,m.y,tx,ty) < RP+16){ const am = Math.atan2(m.y,m.x), d = wrap(Math.atan2(ty,tx)-am), wa = am+(d<0?-1:1)*.55, wr = Math.max(RP+55, Math.min(Math.hypot(m.x,m.y),Math.hypot(tx,ty))); tx = wr*Math.cos(wa); ty = wr*Math.sin(wa); }
+  const dx = tx-m.x, dy = ty-m.y, d = Math.hypot(dx,dy)||1;
+  const ax = (dx/d*m.speed-m.vx)*7, ay = (dy/d*m.speed-m.vy)*7, al = Math.hypot(ax,ay), lim = m.speed*5, k = al>lim ? lim/al : 1;
+  const r = Math.hypot(m.x,m.y), gk = -GM/(r*r*r);
+  m.vx += (ax*k+m.x*gk)*dt; m.vy += (ay*k+m.y*gk)*dt;
+  const sx = m.vx*dt, sy = m.vy*dt; m.x += sx; m.y += sy; m.dist += Math.hypot(sx,sy); m.t += dt;
+  if (Math.hypot(m.x,m.y) < RP+1) return 'block';
+  if (Math.hypot(m.tx-m.x,m.ty-m.y) < Math.max(7,m.speed*dt*1.2) || m.t>6) return 'burst';
+  return 'fly';
+}
+function newMissile(s, tx, ty){ const st = satStats(s); return {x:s.x,y:s.y,vx:-Math.sin(s.ang)*s.w*s.r,vy:Math.cos(s.ang)*s.w*s.r,tx,ty,speed:st.speed,radius:st.radius,sat:s,dist:0,t:0,trail:[]}; }
+function etaFrom(s, x, y){ const d = Math.hypot(x-s.x,y-s.y), blocked = segDist(0,0,s.x,s.y,x,y) < RP+16; return (blocked ? d*1.5+140 : d)/satStats(s).speed; }
+function bestSat(x,y){ let best = null, bt = 1e9; for (const s of sats){ if (!s.online || s.ammo<=0) continue; const t = etaFrom(s,x,y)*(1.3-.3*s.ammo/maxAmmo(s)); if (t<bt){ bt = t; best = s; } } return best; }
+function aimSat(x,y){ const l = sats[g.lock]; return (l && l.online && l.ammo>0) ? l : bestSat(x,y); }
+function clampAim(x,y){ const r = Math.hypot(x,y)||1, k = clamp(r,RP+18,520)/r; return [x*k,y*k]; }
+function fire(s, x, y){
+  if (g.state!=='play' || g.paused) return;
+  [x,y] = clampAim(x,y);
+  if (!s) s = aimSat(x,y);
+  if (!s || !s.online || s.ammo<=0){ sfx.empty(); g.floats.push({x,y,text:s&&!s.online?'OFFLINE':'EMPTY',life:.7,max:.7,col:'#959cc9',size:15}); return; }
+  s.ammo--; s.recoil = 1; g.shots++;
+  const chain = {count:0,live:0,sat:s};
+  for (const [tx,ty] of aimPoints(s,x,y)){ const m = newMissile(s,tx,ty); m.chain = chain; chain.live++; g.missiles.push(m); }
+  sfx.launch();
+}
+function addBlast(x,y,max,gen,chain,col,opt){
+  const b = Object.assign({x,y,max,gen,chain,col,t:0,delay:0,hold:.4,pulses:0,hit:new Set(),r:0,harmless:false,seed:Math.random()*10,tilt:rnd(.9,1.4)}, opt||{});
+  g.blasts.push(b); return b;
+}
+function sparks(x,y,n,col,sp){ if (g.parts.length>600) return; for (let i=0;i<n;i++){ const a = rnd(0,6.283), e = rnd(-1,1), v = rnd(.2,1)*sp, c = Math.sqrt(1-e*e);
+  g.parts.push({x,y,z:0,vx:Math.cos(a)*c*v,vy:Math.sin(a)*c*v,vz:e*v,life:rnd(.4,1),max:1,col}); } }
+function killEnemy(e, b){
+  const def = TYPE[e.type], ch = b.chain;
+  if (e.hp>1){ e.hp--; e.flash = 1; sfx.crack(); g.floats.push({x:e.x,y:e.y+14,text:'CRACKED',life:.8,max:.8,col:def.col,size:12}); return false; }
+  ch.count++; g.kills++;
+  const pts = def.pts*ch.count, pay = ch.count>=3 ? 2 : 1; g.score += pts; g.scrap += pay; g.earned += pay;
+  g.floats.push({x:e.x,y:e.y+10,text:'+'+pts,life:.9,max:.9,col:ch.count>2?'#ffc66e':'#e9ebff',size:11+Math.min(ch.count,8)*1.4});
+  if (ch.count>1) g.focus = Math.min(100, g.focus + 2.2*Math.min(ch.count-1,8)*(1+.5*g.cap));
+  const gen = b.gen+1, heavy = e.type==='heavy', r = (heavy ? 84 : CHAIN_R[Math.min(gen-1,3)]) * (1+.2*g.reactor);
+  ch.live++;
+  addBlast(e.x,e.y,r,gen,ch,heavy?'#ffae42':(gen>1?'#ff8a3d':'#ffd76e'),{delay:.07,hold:heavy?.55:.32});
+  sparks(e.x,e.y,heavy?40:14,def.col,150);
+  sfx.kill(ch.count); if (heavy){ g.shake = Math.max(g.shake,9); sfx.impact(); }
+  if (ch.count>=4) g.shake = Math.max(g.shake, Math.min(ch.count,8));
+  return true;
+}
+function endChain(ch){
+  if (ch.count > g.bestChain) g.bestChain = ch.count;
+  if (ch.count>=3){ if (!g.chainMsg || g.chainMsg.kind!=='con') g.chainMsg = {text:'CHAIN ×'+ch.count,n:ch.count,t:0,col:ch.sat.color};
+    const back = Math.min(ch.sat.sp.recycle, maxAmmo(ch.sat)-ch.sat.ammo); if (back>0 && ch.sat.online){ ch.sat.ammo += back; g.floats.push({x:ch.sat.x,y:ch.sat.y+20,text:'+'+back,life:1,max:1,col:ch.sat.color,size:15}); } }
+}
+function impact(e){
+  const a = Math.atan2(e.y,e.x), x = RP*Math.cos(a), y = RP*Math.sin(a);
+  addBlast(x,y,30,0,{count:0,live:1,sat:sats[0]},'#ff5a4a',{harmless:true,hold:.25});
+  sparks(x,y,22,'#ff6b5e',160); sfx.impact(); g.shake = Math.max(g.shake,8);
+  for (const c of cities) if (c.alive && Math.abs(wrap(a-cityAng(c)))<.24){ c.alive = false; g.flash = .5; sfx.dark(); sparks(x,y,40,'#ffc66e',200);
+    g.floats.push({x:x*1.35,y:y*1.35,text:'CITY DARK',life:1.6,max:1.6,col:'#ff6b5e',size:14}); }
+  if (!cities.some(c => c.alive) && g.state==='play'){ g.state = 'lost'; g.lostT = 0; }
+}
+function useFocus(){ if (g.state!=='play' || g.paused || g.focus<100 || g.focusT>0) return; g.focus = 0; g.focusT = 5; sfx.focus(); }
+
+/* ---------- flow ---------- */
+function clearField(){ g.queue = []; g.enemies = []; g.missiles = []; g.blasts = []; g.floats = []; g.stars = []; g.threads = []; g.tris = []; g.wells = []; g.chainMsg = null; g.focusT = 0; }
+function setFlow(on){ stage.classList.toggle('flow', on); }
+function startHour(h){
+  clearField(); g.hour = h; g.state = 'intro'; g.introT = 0; g.waveT = 0; g.dawnT = 0;
+  sats.forEach(s => { s.online = true; s.ammo = maxAmmo(s); });
+  g.queue = buildQueue(h); hideOverlays(); setNote('h'+h); sfx.hour();
+}
+function hourCleared(){
+  const lit = cities.filter(c => c.alive).length, spare = sats.reduce((a,s) => a + (s.online?s.ammo:0), 0);
+  g.tally = {lit,spare,bonus:lit*100+spare*5,pay:lit*2}; g.score += g.tally.bonus; g.scrap += g.tally.pay; g.earned += g.tally.pay; g.state = 'clear'; g.tallyT = 0; g.focusT = 0;
+}
+function hideOverlays(){ for (const id of ['ovTitle','ovShop','ovEnd','ovPause']) $('#'+id).hidden = true; setFlow(false); }
+function chipsFor(s){ return modKeys(s).map(k => `<span><i class="kind ${CARDS[k].kind}">●</i> ${CARDS[k].name}${s.mods[k]>1?' ×'+s.mods[k]:''}</span>`).join(''); }
+const owned = k => CARDS[k].scope==='all' ? (g[k]||0) : sats.reduce((a,s) => a+(s.mods[k]||0), 0);
+const price = k => (({con:10,relight:8})[k] || 6) + 2*Math.max(0, owned(k)-(SAT_DEF.some(d => d.start===k)?1:0));
+function batteryHTML(sel){
+  const c = sel && CARDS[sel];
+  if (c && c.scope==='all') return `<button class="slot wide" data-take="1"><b style="color:var(--lamp)">Buy ${c.name} · ◆${price(sel)}</b></button>`;
+  return sats.map(s => `<button class="slot" data-sat="${s.i}" ${c ? '' : 'disabled'}><b style="color:${s.color}">${s.name} orbit</b><span class="chips">${chipsFor(s)}</span>` + (c ? `<span class="add">+ ${c.name} · ◆${price(sel)}</span>` : '') + '</button>').join('');
+}
+let shopSel = null, shopOffer = [];
+function stock(){
+  let pool = Object.keys(CARDS).filter(k => { const c = CARDS[k];
+    if (k==='relight') return cities.some(d => !d.alive);
+    if (c.need && !g[c.need]) return false;
+    if (c.once) return !g[k];
+    return true; });
+  const offer = [], take = k => { offer.push(k); pool = pool.filter(p => p!==k); }, any = a => a[Math.random()*a.length|0];
+  if (pool.includes('relight') && cities.filter(d => d.alive).length<=3) take('relight');
+  if (pool.includes('con') && g.hour>=1 && Math.random()<.5) take('con');
+  while (offer.length<4 && pool.length) take(any(pool));
+  shopOffer = offer.slice(0,4); shopSel = null;
+}
+function openShop(){ g.state = 'shop'; setNote('shop'); hideOverlays(); g.reroll = 3; stock(); renderShop(); setFlow(true); $('#ovShop').hidden = false; }
+function renderShop(){
+  $('#shopHead').textContent = 'Night '+(g.hour+1)+' held. Shop.';
+  $('#purse').textContent = '◆ '+g.scrap+' salvage';
+  $('#shopSub').textContent = shopSel ? (CARDS[shopSel].scope==='sat' ? 'Which satellite carries it?' : 'This one covers the whole planet.') : (shopOffer.length ? 'Everything stacks.' : 'Sold out.');
+  const box = $('#cards'); box.innerHTML = '';
+  for (const k of shopOffer){ const c = CARDS[k], el = document.createElement('button'); el.className = 'card'; el.disabled = price(k)>g.scrap; el.setAttribute('aria-pressed', shopSel===k ? 'true':'false');
+    el.innerHTML = `<span class="k"><i class="kind ${c.kind}">${c.kl}</i><b>◆${price(k)}</b></span><h3>${c.name}</h3><span class="t">${c.tag}</span><span class="d">${c.desc}</span>`;
+    el.onclick = () => { shopSel = k; tone(520,.05,'square',.04); renderShop(); }; box.appendChild(el); }
+  const ins = $('#install'); ins.innerHTML = batteryHTML(shopSel);
+  ins.querySelectorAll('button:not(:disabled)').forEach(b => b.onclick = () => {
+    const k = shopSel, p = price(k); if (p>g.scrap) return;
+    if (b.dataset.take){ if (k==='relight'){ const d = cities.find(d => !d.alive); if (d) d.alive = true; } else g[k] = (g[k]||0)+1; }
+    else { const s = sats[+b.dataset.sat]; s.mods[k] = (s.mods[k]||0)+1; compose(s); }
+    g.scrap -= p; shopOffer = shopOffer.filter(o => o!==k); shopSel = null; sfx.pick(); renderShop(); });
+  const rb = $('#rerollBtn'); rb.textContent = 'Reroll · ◆'+g.reroll; rb.disabled = g.scrap<g.reroll;
+  $('#nextBtn').textContent = 'Night '+(g.hour+2);
+}
+$('#rerollBtn').onclick = () => { if (g.scrap<g.reroll) return; g.scrap -= g.reroll; g.reroll += 2; stock(); tone(440,.08,'square',.05); renderShop(); };
+$('#nextBtn').onclick = () => { sfx.pick(); startHour(g.hour+1); };
+function showEnd(win){
+  hideOverlays(); const lit = cities.filter(c => c.alive).length;
+  $('#endHead').innerHTML = win ? 'Dawn. <em>'+lit+' of 6</em> still lit.' : 'The planet went dark on <em>night '+(g.hour+1)+'</em>.';
+  $('#endSub').textContent = win ? 'That is one full run. The notes panel covers what a full game adds around it.' : 'Every city is out. Relight three and carry on with the walkthrough, or start again.';
+  $('#endStats').innerHTML = `<span>Score</span><span>${g.score.toLocaleString()}</span><span>Best chain</span><span>×${g.bestChain}</span><span>Salvage earned</span><span>◆${g.earned}</span><span>Intercepts</span><span>${g.kills}</span><span>Shots fired</span><span>${g.shots}</span>`;
+  const row = $('#endBtns'); row.innerHTML = '';
+  const again = document.createElement('button'); again.className = 'go'; again.textContent = 'Start a new run'; again.onclick = () => { newRun(); startHour(0); };
+  if (!win){ const c = document.createElement('button'); c.className = 'ghost'; c.textContent = 'Relight three and retry night '+(g.hour+1);
+    c.onclick = () => { cities.filter((d,i) => i%2===0).forEach(d => d.alive = true); startHour(g.hour); }; row.appendChild(c); }
+  row.appendChild(again); $('#ovEnd').hidden = false;
+}
+function jump(key){
+  audioInit(); g.paused = false; $('#pauseBtn').textContent = 'Pause';
+  if (key==='pitch'){ clearField(); g.state = 'title'; hideOverlays(); $('#ovTitle').hidden = false; setNote('pitch'); return; }
+  if (!cities.some(d => d.alive)) cities.forEach((d,i) => { if (i%2===0) d.alive = true; });
+  if (key==='shop'){ clearField(); if (g.hour>=5) g.hour = 4; if (g.scrap<20) g.scrap = 20; openShop(); return; }
+  if (key==='dawn'){ clearField(); g.hour = 5; g.state = 'dawn'; g.dawnT = 0; hideOverlays(); setNote('dawn'); return; }
+  startHour(+key.slice(1));
+}
+
+/* ---------- notes rail ---------- */
+function setNote(key){
+  g.note = key; const n = NOTES[key];
+  $('#note').innerHTML = `<h2>${n.title}</h2><dl><div><dt>What you're playing</dt><dd>${n.now}</dd></div><div><dt>Where it comes from</dt><dd>${n.demo}</dd></div><div><dt>In the rebuild</dt><dd>${n.next}</dd></div></dl>`;
+  document.querySelectorAll('#chapters button').forEach(b => b.setAttribute('aria-current', b.dataset.k===key ? 'true':'false'));
+}
+function buildChapters(){
+  const ol = $('#chapters');
+  for (const k of CHAPTER_ORDER){ const li = document.createElement('li'), b = document.createElement('button'); b.dataset.k = k;
+    b.innerHTML = `<span class="tm">${NOTES[k].tm}</span><span>${NOTES[k].title}</span>`; b.onclick = () => jump(k); li.appendChild(b); ol.appendChild(li); }
+  const hint = document.createElement('li'); hint.className = 'hint'; hint.textContent = 'Select any line to jump the game there.'; ol.appendChild(hint);
+}
+
+/* ---------- update ---------- */
+function afterBurst(x,y,sat){ addStar(x,y,sat); if (sat.sp.well) g.wells.push({x,y,t:0,life:3,str:sat.sp.well,col:sat.color}); }
+function burstAt(m){
+  const sp = m.sat.sp, r = m.radius*(1+Math.min(1,m.dist/600)*sp.burn);
+  addBlast(m.x,m.y,r,0,m.chain,m.sat.color,{pulses:sp.echo,src:m.sat}); afterBurst(m.x,m.y,m.sat);
+  if (sp.burn && m.dist>300) g.floats.push({x:m.x,y:m.y+r+8,text:'×'+(r/m.radius).toFixed(1),life:.8,max:.8,col:m.sat.color,size:12});
+  sfx.burst(); g.shake = Math.max(g.shake,2.5); sparks(m.x,m.y,8,m.sat.color,110);
+}
+function update(dt){
+  g.time += dt;
+  if (g.paused || g.state==='shop' || g.state==='end') return;
+  if (g.focusT>0) g.focusT = Math.max(0, g.focusT-dt);
+  const wdt = dt * (g.focusT>0 ? .33 : 1);
+  g.rot += ROTW*wdt; for (const s of sats){ s.ang += s.w*wdt; place(s); s.recoil = Math.max(0, s.recoil-dt*5); }
+  if (g.state==='title') return;
+  g.shake *= Math.pow(.002, dt); g.flash = Math.max(0, g.flash-dt); g.flash2 = Math.max(0, g.flash2-dt);
+  if (g.state==='intro'){ g.introT += dt; if (g.introT>3.4) g.state = 'play'; }
+  if (g.state==='play'){ g.waveT += wdt; while (g.queue.length && g.queue[0].t<=g.waveT){ const q = g.queue.shift(); launch(q.type,q.a,q.c===undefined ? pickCity() : q.c); } }
+
+  for (const w of g.wells.slice()){ w.t += wdt; if (w.t>=w.life) g.wells.splice(g.wells.indexOf(w),1); }
+  for (const e of g.enemies.slice()){ e.age += wdt; e.flash = Math.max(0,e.flash-wdt*3);
+    if (e.type==='dart'){ if (!e.tgt || !e.tgt.online){ const on = sats.filter(s => s.online); e.tgt = on.length ? on[Math.random()*on.length|0] : null; }
+      const sp = 150+12*g.hour, tx = e.tgt ? e.tgt.x : 0, ty = e.tgt ? e.tgt.y : 0, dx = tx-e.x, dy = ty-e.y, d = Math.hypot(dx,dy)||1;
+      e.vx += (dx/d*sp-e.vx)*2.2*wdt; e.vy += (dy/d*sp-e.vy)*2.2*wdt;
+      if (e.tgt && d<12){ e.tgt.online = false; if (g.lock===e.tgt.i) g.lock = -1; g.floats.push({x:tx,y:ty+22,text:e.tgt.name.toUpperCase()+' OFFLINE',life:1.6,max:1.6,col:'#ff6b5e',size:14});
+        addBlast(tx,ty,26,0,{count:0,live:1,sat:sats[0]},'#ff5a4a',{harmless:true,hold:.2}); sparks(tx,ty,24,e.tgt.color,160); sfx.impact(); g.shake = Math.max(g.shake,8); g.enemies.splice(g.enemies.indexOf(e),1); continue; } }
+    else { const r2 = e.x*e.x+e.y*e.y, r = Math.sqrt(r2), k = -GM/(r2*r)*wdt; e.vx += e.x*k; e.vy += e.y*k; if (e.drag && r<330){ e.vx *= 1-e.drag*wdt; e.vy *= 1-e.drag*wdt; } }
+    for (const w of g.wells){ const dx = w.x-e.x, dy = w.y-e.y, d = Math.hypot(dx,dy); if (d<150 && d>4){ const k = (1-d/150)*320*w.str*wdt; e.vx += dx/d*k; e.vy += dy/d*k; } }
+    e.x += e.vx*wdt; e.y += e.vy*wdt; const r = Math.hypot(e.x,e.y);
+    if (e.type==='split' && r<=e.splitR){ g.enemies.splice(g.enemies.indexOf(e),1); sparks(e.x,e.y,10,'#c58bff',110); tone(880,.15,'square',.04,440);
+      for (const da of [-.28,0,.28]){ const c = Math.cos(da), s = Math.sin(da); g.enemies.push({id:++g.eid,type:'streak',x:e.x,y:e.y,vx:(e.vx*c-e.vy*s)*1.1,vy:(e.vx*s+e.vy*c)*1.1,hp:1,drag:0,splitR:0,flash:0,cut:null,spin:0,age:1,tgt:null}); } continue; }
+    if (r>780){ g.enemies.splice(g.enemies.indexOf(e),1); continue; }
+    if (r<=RP){ g.enemies.splice(g.enemies.indexOf(e),1); impact(e); } }
+
+  for (const m of g.missiles.slice()){ let res = 'fly'; const n = Math.max(1,Math.ceil(dt/.012)); for (let i=0;i<n && res==='fly';i++) res = stepMissile(m,dt/n);
+    m.trail.push(m.x,m.y); if (m.trail.length>28) m.trail.splice(0,2);
+    if (res!=='fly'){ g.missiles.splice(g.missiles.indexOf(m),1);
+      if (res==='burst') burstAt(m); else { g.floats.push({x:m.x*1.3,y:m.y*1.3,text:'BLOCKED',life:.8,max:.8,col:'#959cc9',size:12}); sparks(m.x,m.y,8,m.sat.color,80); if (--m.chain.live<=0) endChain(m.chain); } } }
+
+  for (const b of g.blasts.slice()){
+    if (b.delay>0){ b.delay -= wdt; continue; }
+    b.t += wdt; const G = .2, Sh = .35;
+    if (b.t<G) b.r = b.max*(1-Math.pow(1-b.t/G,2)); else if (b.t<G+b.hold) b.r = b.max; else b.r = b.max*Math.max(0,1-(b.t-G-b.hold)/Sh);
+    if (!b.harmless) for (const e of g.enemies.slice()){ if (b.hit.has(e.id) || e.age<.4) continue;
+      if (Math.hypot(e.x-b.x,e.y-b.y) < b.r+5){ b.hit.add(e.id); if (killEnemy(e,b)) g.enemies.splice(g.enemies.indexOf(e),1); } }
+    if (b.t>=G+b.hold+Sh){
+      if (b.pulses>0){ b.pulses--; b.t = 0; b.max *= .7; b.hit = new Set(); b.delay = .35; b.r = 0; afterBurst(b.x,b.y,b.src); continue; }
+      g.blasts.splice(g.blasts.indexOf(b),1); if (!b.harmless && --b.chain.live<=0) endChain(b.chain); } }
+
+  for (const s of g.stars.slice()){ if (s.lock) continue; s.age += wdt; if (s.age>=s.life) removeStar(s); }
+  for (const th of g.threads.slice()){ if (th.dead) continue; th.flash = Math.max(0, th.flash-dt*4);
+    for (const e of g.enemies.slice()){ if (th.dead) break; if (e.cut && e.cut.has(th)) continue;
+      if (segDist(e.x,e.y,th.a.x,th.a.y,th.b.x,th.b.y) < 7){ (e.cut || (e.cut = new Set())).add(th); th.cuts--; th.flash = 1; sfx.cut();
+        for (const end of [th.a,th.b]) if (end.sat.sp.live){ th.chain.live++; addBlast(end.x,end.y,end.sat.sp.radius*Math.min(1.5,.5*end.sat.sp.live),0,th.chain,end.sat.color,{hold:.22}); }
+        if (killEnemy(e,{gen:0,chain:th.chain})) g.enemies.splice(g.enemies.indexOf(e),1);
+        if (th.cuts<=0){ sparks((th.a.x+th.b.x)/2,(th.a.y+th.b.y)/2,10,'#ffffff',90); dropThread(th); } } } }
+  for (const tr of g.tris.slice()){ tr.t += wdt;
+    if (!tr.fired && tr.t>=.3){ tr.fired = true; const [a,b,c] = tr.p;
+      for (const e of g.enemies.filter(e => inTri(e.x,e.y,a,b,c))){ e.hp = 1; killEnemy(e,{gen:0,chain:tr.chain}); g.enemies.splice(g.enemies.indexOf(e),1); }
+      const n = tr.chain.count;
+      if (tr.trinity && n){ g.score += 150*n; g.floats.push({x:(a.x+b.x+c.x)/3,y:(a.y+b.y+c.y)/3,text:'TRINITY +'+150*n,life:1.6,max:1.6,col:'#ffc66e',size:16}); }
+      g.chainMsg = {text:n ? 'CONSTELLATION ×'+n : 'CONSTELLATION',n:Math.max(n,3),t:0,col:'#fff4d6',kind:'con'};
+      g.focus = Math.min(100, g.focus + 4*n*(1+.5*g.cap)); g.shake = Math.max(g.shake, 5+n); g.flash2 = .2;
+      for (const s of tr.p){ s.lock = false; removeStar(s); } }
+    if (tr.t>.9){ g.tris.splice(g.tris.indexOf(tr),1); if (--tr.chain.live<=0) endChain(tr.chain); } }
+
+  for (let i=g.parts.length-1;i>=0;i--){ const p = g.parts[i]; p.life -= dt; if (p.life<=0){ g.parts.splice(i,1); continue; } p.x += p.vx*wdt; p.y += p.vy*wdt; p.z += p.vz*wdt; p.vx *= 1-.8*wdt; p.vy *= 1-.8*wdt; }
+  for (let i=g.floats.length-1;i>=0;i--){ const f = g.floats[i]; f.life -= dt; f.y += 18*dt; if (f.life<=0) g.floats.splice(i,1); }
+  if (g.chainMsg){ g.chainMsg.t += dt; if (g.chainMsg.t>1.6) g.chainMsg = null; }
+
+  if (g.state==='play' && !g.queue.length && !g.enemies.length && !g.missiles.length && !g.blasts.length && !g.tris.length) hourCleared();
+  if (g.state==='clear'){ g.tallyT += dt; if (g.tallyT>3.4){ if (g.hour>=NIGHTS.length-1){ g.state = 'dawn'; g.dawnT = 0; setNote('dawn'); } else openShop(); } }
+  if (g.state==='dawn'){ g.dawnT += dt; if (g.dawnT>4.5){ g.state = 'end'; showEnd(true); } }
+  if (g.state==='lost'){ g.lostT += dt; if (g.lostT>1.8){ g.state = 'end'; showEnd(false); } }
+}
+
+/* ---------- 3D scene ---------- */
+const T = window.THREE; let R3 = null;
+function init3D(){
+  const renderer = new T.WebGLRenderer({canvas:$('#gl'), antialias:true, powerPreference:'high-performance'}); renderer.setClearColor(0x04050c);
+  const scene = new T.Scene(), FOV = 30, cam = new T.PerspectiveCamera(FOV, 1.6, 10, 6000);
+  const colCache = {}, col = h => colCache[h] || (colCache[h] = new T.Color(h));
+  scene.add(new T.AmbientLight(0x3a4288, .55));
+  const sun = new T.DirectionalLight(0xfff0d8, 1.05); sun.position.set(-1,.12,.5); scene.add(sun);
+  const lights = []; for (let i=0;i<4;i++){ const l = new T.PointLight(0xffffff, 0, 420, 2); scene.add(l); lights.push(l); }
+  const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), gr = x.createRadialGradient(64,64,0,64,64,64);
+    gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.25,'rgba(255,255,255,.45)'); gr.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0,0,128,128); return new T.CanvasTexture(c); })();
+
+  // deep space
+  const sp = new Float32Array(500*3); for (let i=0;i<500;i++){ sp[i*3] = rnd(-2600,2600); sp[i*3+1] = rnd(-2000,2000); sp[i*3+2] = rnd(-1400,-700); }
+  const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.BufferAttribute(sp,3));
+  const skyStars = new T.Points(sg, new T.PointsMaterial({color:0xcfd6ff,size:1.5,sizeAttenuation:false,transparent:true,opacity:.8,depthWrite:false})); skyStars.frustumCulled = false; scene.add(skyStars);
+  const sunGlow = new T.Sprite(new T.SpriteMaterial({map:glowTex,color:0xffd9a8,transparent:true,opacity:.55,blending:T.AdditiveBlending,depthWrite:false})); sunGlow.scale.set(1500,1500,1); sunGlow.position.set(-1350,160,-500); scene.add(sunGlow);
+
+  // planet seen from above its pole
+  const mapTex = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 256; const x = c.getContext('2d'); x.fillStyle = '#17467f'; x.fillRect(0,0,512,256);
+    for (let i=0;i<70;i++){ x.fillStyle = Math.random()<.5 ? '#2f7350' : '#3d8257'; const px = rnd(0,512), py = rnd(46,250), rx = rnd(10,46), ry = rnd(6,22); for (const o of [-512,0,512]){ x.beginPath(); x.ellipse(px+o,py,rx,ry,rnd(0,3),0,6.283); x.fill(); } }
+    for (let i=0;i<40;i++){ x.fillStyle = 'rgba(255,255,255,.16)'; x.beginPath(); x.ellipse(rnd(0,512),rnd(40,250),rnd(14,50),rnd(3,8),0,0,6.283); x.fill(); }
+    x.fillStyle = '#9fb4d6'; x.fillRect(0,0,512,22); for (let i=0;i<60;i++){ x.beginPath(); x.arc(rnd(0,512),22,rnd(3,10),0,6.283); x.fill(); } return new T.CanvasTexture(c); })();
+  const lightTex = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 256; const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0,0,512,256);
+    for (let i=0;i<420;i++){ x.fillStyle = Math.random()<.7 ? '#ffb85a' : '#ffe2a8'; x.fillRect(rnd(0,512),rnd(40,250),rnd(1,2.4),rnd(1,2.4)); } return new T.CanvasTexture(c); })();
+  const holder = new T.Group(); holder.rotation.x = Math.PI/2; scene.add(holder);
+  const planet = new T.Mesh(new T.SphereGeometry(RP,64,40), new T.MeshLambertMaterial({map:mapTex,emissive:0xffffff,emissiveMap:lightTex,emissiveIntensity:.55})); holder.add(planet);
+  const haloTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), gr = x.createRadialGradient(128,128,0,128,128,128);
+    gr.addColorStop(0,'rgba(90,150,255,0)'); gr.addColorStop(.74,'rgba(90,150,255,0)'); gr.addColorStop(.8,'rgba(120,180,255,.75)'); gr.addColorStop(.86,'rgba(90,150,255,.28)'); gr.addColorStop(1,'rgba(90,150,255,0)'); x.fillStyle = gr; x.fillRect(0,0,256,256); return new T.CanvasTexture(c); })();
+  const halo = new T.Sprite(new T.SpriteMaterial({map:haloTex,transparent:true,opacity:.8,blending:T.AdditiveBlending,depthWrite:false})); halo.scale.setScalar(RP*2/.79); scene.add(halo);
+
+  // cities on the rim, turning with the planet
+  const surface = new T.Group(); scene.add(surface);
+  const winTex = (() => { const c = document.createElement('canvas'); c.width = 16; c.height = 32; const x = c.getContext('2d'); x.fillStyle = '#05070f'; x.fillRect(0,0,16,32);
+    for (let r=0;r<8;r++) for (let q=0;q<4;q++) if (Math.random()<.7){ x.fillStyle = '#ffc66e'; x.fillRect(q*4+1,r*4+1,2,2); } const t = new T.CanvasTexture(c); t.magFilter = T.NearestFilter; return t; })();
+  const bM = new T.MeshLambertMaterial({color:0x151c44,emissive:0xffffff,emissiveMap:winTex}), boxG = new T.BoxGeometry(1,1,1), rubM = new T.MeshLambertMaterial({color:0x14121c});
+  const town = [0,1,2,3,4,5].map(i => { const th = i*1.0472+.3, lit = new T.Group(), dead = new T.Group();
+    for (let j=0;j<8;j++){ const w = rnd(4.5,7), h = rnd(7,19), b = new T.Mesh(boxG,bM); b.scale.set(w,h,rnd(4.5,7)); b.position.set(rnd(-17,17),h/2-1.5,rnd(-10,10)); lit.add(b);
+      if (j<4){ const r = new T.Mesh(boxG,rubM); r.scale.set(w*1.2,3,6); r.position.set(b.position.x,0,b.position.z); dead.add(r); } }
+    const gl = new T.Sprite(new T.SpriteMaterial({map:glowTex,color:0xffb050,transparent:true,opacity:.55,blending:T.AdditiveBlending,depthWrite:false})); gl.scale.setScalar(70); gl.position.y = 6; lit.add(gl);
+    for (const grp of [lit,dead]){ grp.position.set(RP*Math.cos(th),RP*Math.sin(th),0); grp.rotation.z = th-Math.PI/2; surface.add(grp); } return {lit,dead}; });
+
+  // orbits and satellites
+  const sat3 = SAT_DEF.map(d => { const pts = []; for (let i=0;i<=96;i++) pts.push(new T.Vector3(d.r*Math.cos(i/96*6.2832), d.r*Math.sin(i/96*6.2832), 0));
+    const ring = new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({color:d.color,transparent:true,opacity:.22})); scene.add(ring);
+    const grp = new T.Group(), mat = new T.MeshBasicMaterial({color:d.color}), body = new T.Mesh(boxG, new T.MeshLambertMaterial({color:0xcfd4ee})); body.scale.set(6,6,6); grp.add(body);
+    for (const sx of [-1,1]){ const p = new T.Mesh(boxG, mat); p.scale.set(9,3.2,.8); p.position.x = sx*8; grp.add(p); }
+    const gl = new T.Sprite(new T.SpriteMaterial({map:glowTex,color:d.color,transparent:true,opacity:.6,blending:T.AdditiveBlending,depthWrite:false})); gl.scale.setScalar(44); grp.add(gl);
+    scene.add(grp); return {grp,mat,gl,ring}; });
+
+  const pool = make => { const items = []; let n = 0; return { get(){ let m = items[n]; if (!m){ m = make(); items.push(m); scene.add(m); } m.visible = true; n++; return m; }, end(){ for (let i=n;i<items.length;i++) items[i].visible = false; n = 0; } }; };
+  const sphG = new T.SphereGeometry(1,28,20), smallSph = new T.SphereGeometry(1,12,8), torG = new T.TorusGeometry(1,.022,6,56);
+  const blastMat = () => new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,
+    uniforms:{uColor:{value:new T.Color()},uAlpha:{value:1},uTime:{value:0},uSeed:{value:0}},
+    vertexShader:'varying vec3 vN; varying vec3 vV; varying vec3 vP; void main(){ vP = position; vec4 mv = modelViewMatrix*vec4(position,1.); vN = normalize(normalMatrix*normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix*mv; }',
+    fragmentShader:`uniform vec3 uColor; uniform float uAlpha; uniform float uTime; uniform float uSeed; varying vec3 vN; varying vec3 vV; varying vec3 vP;
+      void main(){ float f = 1.-abs(dot(normalize(vN),normalize(vV))); float rim = pow(f,2.4);
+        vec3 p = vP*5.+uSeed; float n = sin(p.x+uTime*4.)*sin(p.y*1.3-uTime*3.)*sin(p.z*1.7+uTime*3.5)*.5+.5;
+        float n2 = sin(p.x*2.3-uTime*5.)*sin(p.y*2.9+p.z*2.1+uTime*2.)*.5+.5;
+        vec3 c = mix(vec3(1.,.97,.88), uColor, smoothstep(.05,.8,f+.25*n));
+        float a = (.22+.55*n*n2*(1.-rim)+1.25*rim)*uAlpha; gl_FragColor = vec4(c,a); }`});
+  const addMat = () => new T.MeshBasicMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending});
+  const P = {
+    blast: pool(() => { const grp = new T.Group(); grp.add(new T.Mesh(sphG, blastMat())); grp.add(new T.Mesh(torG, addMat())); const core = new T.Mesh(smallSph, addMat()); grp.add(core); return grp; }),
+    beam: pool(() => { const geo = new T.PlaneGeometry(1,1); geo.translate(.5,0,0); return new T.Mesh(geo, new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,
+      uniforms:{uA:{value:new T.Color()},uB:{value:new T.Color()},uAlpha:{value:1},uFade:{value:1}},
+      vertexShader:'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+      fragmentShader:'uniform vec3 uA; uniform vec3 uB; uniform float uAlpha; uniform float uFade; varying vec2 vUv; void main(){ float e = 1.-abs(vUv.y-.5)*2.; float a = mix(1.,vUv.x*vUv.x,uFade)*pow(e,1.4)*uAlpha; gl_FragColor = vec4(mix(uA,uB,vUv.x)*1.4,a); }'})); }),
+    streak: pool(() => new T.Mesh(smallSph, new T.MeshBasicMaterial({color:0xff7a66}))),
+    orbit: pool(() => new T.Mesh(new T.TetrahedronGeometry(1,0), new T.MeshBasicMaterial({color:0xff7ad9}))),
+    dart: pool(() => new T.Mesh(new T.ConeGeometry(1,5,6), new T.MeshBasicMaterial({color:0xffffff}))),
+    split: pool(() => new T.Mesh(new T.OctahedronGeometry(1,0), new T.MeshBasicMaterial({color:0xc58bff}))),
+    heavy: pool(() => { const grp = new T.Group(), m = new T.MeshBasicMaterial({color:0xffae42}); grp.add(new T.Mesh(new T.IcosahedronGeometry(1,0), m)); for (let i=0;i<2;i++) grp.add(new T.Mesh(new T.TorusGeometry(1.7+i*.55,.07,6,28), m)); return grp; }),
+    missile: pool(() => new T.Mesh(smallSph, new T.MeshBasicMaterial({color:0xffffff}))),
+    node: pool(() => { const grp = new T.Group(); grp.add(new T.Mesh(new T.OctahedronGeometry(1,0), new T.MeshBasicMaterial({color:0xffffff}))); grp.add(new T.Sprite(new T.SpriteMaterial({map:glowTex,transparent:true,blending:T.AdditiveBlending,depthWrite:false}))); return grp; }),
+    well: pool(() => { const grp = new T.Group(); for (let i=0;i<3;i++) grp.add(new T.Mesh(torG, addMat())); return grp; }),
+    tri: pool(() => { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(new Float32Array(9),3)); const m = new T.Mesh(geo, new T.MeshBasicMaterial({color:0xfff4d6,transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide})); m.frustumCulled = false; return m; }),
+  };
+  const NP = 600, pPos = new Float32Array(NP*3), pCol = new Float32Array(NP*3), pg = new T.BufferGeometry();
+  pg.setAttribute('position', new T.BufferAttribute(pPos,3)); pg.setAttribute('color', new T.BufferAttribute(pCol,3));
+  const parts = new T.Points(pg, new T.PointsMaterial({size:5,vertexColors:true,transparent:true,depthWrite:false,blending:T.AdditiveBlending,map:glowTex})); parts.frustumCulled = false; scene.add(parts);
+
+  let composer = null, bloom = null;
+  try { if (T.EffectComposer && T.UnrealBloomPass){ composer = new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene,cam)); bloom = new T.UnrealBloomPass(new T.Vector2(256,256), .9, .55, .55); composer.addPass(bloom); } } catch(e){ composer = null; }
+  let D = 1800;
+  function size(w,h,dpr){ renderer.setPixelRatio(dpr); renderer.setSize(w,h,false); if (composer){ composer.setPixelRatio(dpr); composer.setSize(w,h); }
+    cam.aspect = w/h; D = (h/2/KC)/Math.tan(FOV*Math.PI/360); cam.updateProjectionMatrix(); }
+  function beam(x1,y1,x2,y2,w,ca,cb,alpha,fade){ const m = P.beam.get(), dx = x2-x1, dy = y2-y1; m.position.set(x1,y1,0); m.rotation.z = Math.atan2(dy,dx); m.scale.set(Math.hypot(dx,dy)||.001,w,1);
+    const u = m.material.uniforms; u.uA.value.copy(col(ca)); u.uB.value.copy(col(cb)); u.uAlpha.value = alpha; u.uFade.value = fade; }
+
+  function draw(shx, shy){
+    cam.position.set(shx, shy, D); planet.rotation.y = g.rot; surface.rotation.z = g.rot;
+    const dawn = g.state==='dawn' || (g.state==='end' && g.dawnT>4) ? clamp(g.dawnT/4,0,1) : 0;
+    sun.intensity = 1.05+dawn*.9; sunGlow.material.opacity = .55+dawn*.45; if (bloom) bloom.strength = .9;
+    for (let i=0;i<cities.length;i++){ town[i].lit.visible = cities[i].alive; town[i].dead.visible = !cities[i].alive; }
+    for (const s of sats){ const o = sat3[s.i]; o.grp.position.set(s.x,s.y,0); o.grp.rotation.z = s.ang+Math.PI/2; o.grp.scale.setScalar(U*(1+.25*s.recoil));
+      const c = s.online ? s.color : (Math.sin(g.time*8)>0 ? '#ff6b5e' : '#3a2030'); o.mat.color.copy(col(c)); o.gl.material.color.copy(col(c)); o.gl.material.opacity = s.online ? (g.lock===s.i ? .95 : .6) : .3;
+      o.ring.material.opacity = s.online ? (g.lock===s.i ? .5 : .22) : .08; }
+
+    for (const e of g.enemies){ const c = TYPE[e.type].col, sp = Math.hypot(e.vx,e.vy)||1, tl = Math.min(e.type==='dart'?120:90, e.age*sp), fade = clamp(e.age*2.5,0,1);
+      beam(e.x-e.vx/sp*tl, e.y-e.vy/sp*tl, e.x, e.y, (e.type==='heavy'?7:e.type==='dart'?3:4.5)*U, c, e.type==='dart'?'#ffffff':c, fade, 1);
+      const m = P[e.type].get(); m.position.set(e.x,e.y,0);
+      if (e.type==='streak') m.scale.setScalar(3.2*U*fade);
+      else if (e.type==='orbit'){ m.scale.setScalar(5*U*fade); m.rotation.set(g.time*3+e.spin,g.time*2,0); }
+      else if (e.type==='dart'){ m.scale.setScalar(1.8*U); m.rotation.z = Math.atan2(e.vy,e.vx)-Math.PI/2; }
+      else if (e.type==='split'){ m.scale.setScalar(6*U*fade); m.rotation.set(g.time*2+e.spin,g.time*3,0); }
+      else { m.scale.setScalar(7*U*fade); m.children[0].rotation.set(g.time+e.spin,g.time*1.4,0); m.children[0].material.color.copy(col(e.flash>0?'#ffffff':c));
+        m.children[1].visible = e.hp>=1; m.children[2].visible = e.hp>=2; m.children[1].rotation.set(g.time*1.5,g.time,0); m.children[2].rotation.set(g.time,-g.time*1.2,1); } }
+
+    for (const m of g.missiles){ const t = m.trail; for (let i=0;i+3<t.length;i+=2) beam(t[i],t[i+1],t[i+2],t[i+3],3.4*U,m.sat.color,m.sat.color,.25+.75*i/t.length,0);
+      if (t.length>=2) beam(t[t.length-2],t[t.length-1],m.x,m.y,3.4*U,m.sat.color,'#ffffff',1,0);
+      const o = P.missile.get(); o.position.set(m.x,m.y,0); o.scale.setScalar(2.6*U); }
+
+    for (const w of g.wells){ const o = P.well.get(), k = 1-w.t/w.life; o.position.set(w.x,w.y,0);
+      for (let i=0;i<3;i++){ const ph = ((g.time*.9+i/3)%1), r = o.children[i]; r.scale.setScalar(150*(1-ph)+4); r.material.opacity = ph*.55*k; r.material.color.copy(col(w.col)); } }
+    for (const th of g.threads) beam(th.a.x,th.a.y,th.b.x,th.b.y,(2.2+1.1*Math.min(th.cuts,6)+7*th.flash)*U,th.a.sat.color,th.b.sat.color,.7+.3*Math.sin(g.time*9)+th.flash,0);
+    for (const s of g.stars){ const o = P.node.get(), left = s.life-s.age, blink = (left<1 && !s.lock) ? (.4+.6*Math.abs(Math.sin(left*14))) : 1, sc = 5*U;
+      o.position.set(s.x,s.y,0); o.children[0].scale.setScalar(sc*(1+.15*Math.sin(g.time*6+s.id))); o.children[0].rotation.set(g.time*1.5,g.time*2+s.id,0);
+      o.children[0].material.color.copy(col(s.sat.color)).multiplyScalar(blink); o.children[1].material.color.copy(col(s.sat.color)); o.children[1].material.opacity = .55*blink; o.children[1].scale.setScalar(sc*8); }
+    for (const tr of g.tris){ const m = P.tri.get(), a = m.geometry.attributes.position; for (let i=0;i<3;i++) a.setXYZ(i,tr.p[i].x,tr.p[i].y,0); a.needsUpdate = true;
+      m.material.opacity = tr.t<.3 ? tr.t/.3*.3 : Math.max(0,1-(tr.t-.3)/.6)*.95; m.material.color.copy(col(tr.trinity?'#ffe2a8':'#dfe6ff')); }
+
+    const act = [];
+    for (const b of g.blasts){ if (b.delay>0 || b.r<=0) continue; const o = P.blast.get(), al = clamp(b.r/b.max,0,1); o.position.set(b.x,b.y,0);
+      const sh = o.children[0], u = sh.material.uniforms; sh.scale.setScalar(b.r); u.uColor.value.copy(col(b.col)); u.uAlpha.value = al; u.uTime.value = g.time; u.uSeed.value = b.seed; sh.rotation.y = g.time*.6+b.seed;
+      const p = clamp(b.t/(.55+b.hold),0,1), ring = o.children[1]; ring.rotation.set(b.tilt,b.seed,0); ring.scale.setScalar(b.max*(.45+1.5*p)); ring.material.opacity = (1-p)*.9; ring.material.color.copy(col(b.col));
+      const core = o.children[2]; core.scale.setScalar(b.r*.42); core.material.opacity = .85*al*al; core.material.color.set(0xffffff); act.push(b); }
+    act.sort((a,b) => b.r-a.r);
+    for (let i=0;i<lights.length;i++){ const b = act[i], l = lights[i]; if (b){ l.color.copy(col(b.col)); l.intensity = 3*(b.r/42); l.position.set(b.x,b.y,60); } else l.intensity = 0; }
+
+    let n = 0; for (const p of g.parts){ if (n>=NP) break; const k = clamp(p.life/p.max*1.6,0,1), c = col(p.col); pPos[n*3] = p.x; pPos[n*3+1] = p.y; pPos[n*3+2] = p.z; pCol[n*3] = c.r*k; pCol[n*3+1] = c.g*k; pCol[n*3+2] = c.b*k; n++; }
+    pg.setDrawRange(0,n); pg.attributes.position.needsUpdate = true; pg.attributes.color.needsUpdate = true; parts.material.size = 6*U;
+    for (const k in P) P[k].end();
+    if (composer) composer.render(); else renderer.render(scene,cam);
+  }
+  return {size, draw};
+}
+
+/* ---------- 2D overlay: HUD, text, aim (device pixels; world helpers wx/wy) ---------- */
+let shX = 0, shY = 0;
+const wx = x => cv.width/2 + (x-shX)*KD, wy = y => cv.height/2 - (y-shY)*KD, px = n => n*DPR;
+function txt(s,x,y,size,col,align,font){ ctx.font = `${font==='d'?'800':'600'} ${size}px ${font==='d'?'"Big Shoulders Display","Arial Narrow",Impact,sans-serif':'"IBM Plex Mono",ui-monospace,Menlo,monospace'}`; ctx.textAlign = align||'left'; ctx.fillStyle = col; ctx.fillText(s,x,y); }
+function wrapText(s,x,y,size,col,maxW,lh){ ctx.font = `500 ${size}px "IBM Plex Sans",system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.fillStyle = col;
+  const words = s.split(' '); let line = ''; for (const w of words){ const t = line ? line+' '+w : w; if (ctx.measureText(t).width>maxW && line){ ctx.fillText(line,x,y); y += lh; line = w; } else line = t; } ctx.fillText(line,x,y); }
+const chipW = () => Math.min(112, (CW-24)/3-6), chipRect = i => { const w = chipW(), tot = w*3+12, x0 = (CW-tot)/2+i*(w+6); return [x0, CH-40, w, 32]; };
+function hud(){
+  const w = cv.width, h = cv.height; ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,w,h); ctx.lineCap = 'round';
+  // link reach of each star
+  for (const s of g.stars){ if (s.lock) continue; ctx.strokeStyle = s.sat.color; ctx.globalAlpha = .13; ctx.lineWidth = px(1); ctx.setLineDash([px(2),px(6)]); ctx.beginPath(); ctx.arc(wx(s.x),wy(s.y),s.reach*KD,0,6.283); ctx.stroke(); }
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  for (const m of g.missiles){ ctx.strokeStyle = m.sat.color; ctx.lineWidth = px(1); const c = px(4), x = wx(m.tx), y = wy(m.ty); ctx.beginPath(); ctx.moveTo(x-c,y-c); ctx.lineTo(x+c,y+c); ctx.moveTo(x+c,y-c); ctx.lineTo(x-c,y+c); ctx.stroke(); }
+  if (g.state!=='title') for (const s of sats){ if (g.mouse){ ctx.globalAlpha = .9; txt(s.key, wx(s.x), wy(s.y)-px(12), px(10), s.online?s.color:'#6a5060', 'center'); ctx.globalAlpha = 1; } }
+  for (const f of g.floats){ ctx.globalAlpha = clamp(f.life/f.max*1.5,0,1); txt(f.text,wx(f.x),wy(f.y),px(f.size),f.col,'center'); }
+  ctx.globalAlpha = 1;
+
+  if (g.focusT>0){ ctx.fillStyle = 'rgba(98,230,255,.06)'; ctx.fillRect(0,0,w,h); ctx.strokeStyle = 'rgba(98,230,255,.6)'; ctx.lineWidth = px(3); ctx.strokeRect(px(1.5),px(1.5),w-px(3),h-px(3)); ctx.fillStyle = '#62e6ff'; ctx.fillRect(0,h-px(3),w*g.focusT/5,px(3)); }
+  if (g.flash>0){ ctx.fillStyle = `rgba(255,107,94,${g.flash*.35})`; ctx.fillRect(0,0,w,h); }
+  if (g.flash2>0){ ctx.fillStyle = `rgba(255,244,214,${g.flash2*.8})`; ctx.fillRect(0,0,w,h); }
+  if (g.state!=='title'){
+    const pad = px(12), fs = px(24), dawn = g.state==='dawn'||(g.state==='end'&&g.dawnT>4);
+    txt(dawn ? 'DAWN' : 'NIGHT '+(g.hour+1), pad, pad+fs*.8, fs, '#e9ebff', 'left', 'd'); txt(NIGHTS[g.hour].name.toUpperCase(), pad, pad+fs*.8+px(13), px(9.5), '#959cc9');
+    txt(g.score.toLocaleString(), w-pad, pad+fs*.8, fs, '#e9ebff', 'right', 'd'); txt('◆ '+g.scrap, w-pad, pad+fs*.8+px(15), px(11), '#ffc66e', 'right');
+    const lw = px(8); for (let i=0;i<cities.length;i++){ ctx.fillStyle = cities[i].alive ? '#ffc66e' : 'rgba(255,255,255,.16)'; ctx.fillRect(w-pad-(cities.length-i)*(lw+px(3))+px(3), pad+fs*.8+px(22), lw, px(5)); }
+    // satellite tags: ammo, and the tap target for locking a satellite
+    for (const s of sats){ const [x,y,cw,chh] = chipRect(s.i).map(px), on = s.online, n = maxAmmo(s);
+      ctx.fillStyle = 'rgba(8,10,26,.72)'; ctx.fillRect(x,y,cw,chh); ctx.strokeStyle = on ? s.color : '#4a3040'; ctx.globalAlpha = g.lock===s.i ? 1 : .45; ctx.lineWidth = px(g.lock===s.i ? 2 : 1); ctx.strokeRect(x,y,cw,chh); ctx.globalAlpha = 1;
+      txt((g.lock===s.i?'● ':'')+s.name.toUpperCase(), x+px(7), y+px(13), px(10), on ? s.color : '#6a5060'); txt(on ? String(s.ammo) : 'OFF', x+cw-px(7), y+px(13), px(10), on ? '#e9ebff' : '#ff6b5e', 'right');
+      const gap = px(1.5), pw = (cw-px(14)-gap*(n-1))/n; for (let i=0;i<n;i++){ ctx.fillStyle = (on && i<s.ammo) ? s.color : 'rgba(255,255,255,.14)'; ctx.fillRect(x+px(7)+i*(pw+gap), y+px(20), pw, px(5)); } }
+  }
+  if (g.chainMsg){ const c = g.chainMsg, a = clamp(1.6-c.t,0,1)*clamp(c.t*8,0,1), sz = Math.min(px(30+Math.min(c.n,12)*2.4), w/(c.text.length*.52))*(1+.25*Math.max(0,1-c.t*5));
+    ctx.globalAlpha = a; txt(c.text, w/2, h*.17, sz, c.col, 'center', 'd'); ctx.globalAlpha = 1; }
+  if (g.state==='intro'){ const a = clamp(g.introT*3,0,1)*clamp((3.4-g.introT)*2.5,0,1), n = NIGHTS[g.hour], y0 = h*.1; ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(5,6,15,.72)'; ctx.fillRect(0,y0,w,px(128));
+    txt('NIGHT '+(g.hour+1), w/2, y0+px(46), px(46), '#ffc66e', 'center', 'd'); txt(n.name.toUpperCase(), w/2, y0+px(64), px(11), '#e9ebff', 'center');
+    wrapText(n.brief, w/2, y0+px(86), px(13.5), '#d5d9f5', Math.min(w-px(30),px(520)), px(18)); ctx.globalAlpha = 1; }
+  if (g.state==='clear' && g.tally){ const t = g.tallyT, y0 = h*.14; ctx.fillStyle = 'rgba(5,6,15,.66)'; ctx.fillRect(0,y0-px(42),w,px(132));
+    txt('NIGHT '+(g.hour+1)+' HELD', w/2, y0, px(40), '#ffc66e', 'center', 'd');
+    if (t>.6) txt(`cities lit  ${g.tally.lit} × 100`, w/2, y0+px(24), px(12), '#e9ebff', 'center');
+    if (t>1.1) txt(`interceptors spare  ${g.tally.spare} × 5`, w/2, y0+px(42), px(12), '#e9ebff', 'center');
+    if (t>1.6) txt('+'+g.tally.bonus+'   ◆ +'+g.tally.pay, w/2, y0+px(68), px(17), '#ffc66e', 'center'); }
+  if (g.state==='dawn'){ ctx.globalAlpha = clamp(g.dawnT-1,0,1); txt('DAWN', w/2, h*.2, px(72), '#fff4d6', 'center', 'd'); ctx.globalAlpha = 1; }
+
+  // aim: the real flight path this shot would take, the blast ring, and any threads it would make
+  if (g.mouse && g.state==='play' && !g.paused){ const [ax,ay] = clampAim(g.mx,g.my), aim = aimSat(ax,ay), c = aim ? aim.color : '#959cc9';
+    if (aim){ const st = satStats(aim), m = newMissile(aim,ax,ay); let res = 'fly'; ctx.strokeStyle = c; ctx.globalAlpha = .5; ctx.lineWidth = px(1.2); ctx.setLineDash([px(3),px(5)]); ctx.beginPath(); ctx.moveTo(wx(m.x),wy(m.y));
+      for (let i=0;i<220 && res==='fly';i++){ res = stepMissile(m,.02); if (i%2===0 || res!=='fly') ctx.lineTo(wx(m.x),wy(m.y)); } ctx.stroke(); ctx.setLineDash([]);
+      const r = st.radius*(1+Math.min(1,m.dist/600)*st.burn), pts = aimPoints(aim,ax,ay);
+      for (const p of pts){ ctx.globalAlpha = res==='block' ? .15 : .4; ctx.beginPath(); ctx.arc(wx(p[0]),wy(p[1]),r*KD,0,6.283); ctx.stroke();
+        if (g.con){ const reach = st.reach; ctx.globalAlpha = .7; ctx.setLineDash([px(5),px(4)]); for (const s of g.stars){ const d = Math.hypot(s.x-p[0],s.y-p[1]); if (!s.lock && d>10 && d<=(s.reach+reach)/2){ ctx.beginPath(); ctx.moveTo(wx(p[0]),wy(p[1])); ctx.lineTo(wx(s.x),wy(s.y)); ctx.stroke(); } } ctx.setLineDash([]); } } }
+    ctx.globalAlpha = 1; ctx.strokeStyle = c; ctx.lineWidth = px(1.5); const x = wx(ax), y = wy(ay), r = px(8), q = px(3); ctx.beginPath(); ctx.moveTo(x-r,y); ctx.lineTo(x-q,y); ctx.moveTo(x+q,y); ctx.lineTo(x+r,y); ctx.moveTo(x,y-r); ctx.lineTo(x,y-q); ctx.moveTo(x,y+q); ctx.lineTo(x,y+r); ctx.stroke(); }
+
+  const pct = g.focusT>0 ? g.focusT/5*100 : g.focus;
+  $('#focusFill').style.width = pct+'%'; $('#focusPct').textContent = g.focusT>0 ? 'active' : (g.focus>=100 ? 'ready · Space' : Math.floor(g.focus)+'%');
+  $('#focusBtn').classList.toggle('ready', g.focus>=100 && g.focusT<=0);
+}
+
+/* ---------- sizing, input, loop ---------- */
+function resize(){
+  const r = stage.getBoundingClientRect(); if (!r.width || !r.height) return;
+  CW = r.width; CH = r.height; DPR = Math.min(CW<600 ? 1.5 : 2, window.devicePixelRatio||1);
+  KC = Math.min(CW,CH)/2/VIEW; KD = KC*DPR; U = clamp(.55/KC,1,2);
+  cv.width = Math.round(CW*DPR); cv.height = Math.round(CH*DPR);
+  if (R3) R3.size(CW, CH, DPR);
+}
+function toWorld(e){ const r = cv.getBoundingClientRect(); return [(e.clientX-r.left-r.width/2)/KC, -(e.clientY-r.top-r.height/2)/KC, e.clientX-r.left, e.clientY-r.top]; }
+cv.addEventListener('pointermove', e => { [g.mx,g.my] = toWorld(e); const m = e.pointerType==='mouse'; if (m!==g.mouse){ g.mouse = m; stage.classList.toggle('nocursor', m); } });
+cv.addEventListener('pointerleave', () => { if (g.mouse){ g.mouse = false; stage.classList.remove('nocursor'); } });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); const [x,y,cx,cy] = toWorld(e); g.mx = x; g.my = y;
+  if (g.state!=='play') return;
+  for (const s of sats){ const [rx,ry,rw,rh] = chipRect(s.i); if (cx>=rx-3 && cx<=rx+rw+3 && cy>=ry-6 && cy<=ry+rh+8){ if (s.online){ g.lock = g.lock===s.i ? -1 : s.i; tone(500,.06,'square',.05); } return; } }
+  fire(null,x,y); });
+addEventListener('keydown', e => {
+  if (e.target.tagName==='BUTTON' && (e.code==='Space'||e.code==='Enter')) { if (e.code==='Space' && g.state==='play') e.preventDefault(); else return; }
+  const k = e.key.toLowerCase(); audioInit();
+  if (g.state==='play'){ const i = {a:0,s:1,d:2,'1':0,'2':1,'3':2}[k]; if (i!=null && !e.repeat){ fire(sats[i],g.mx,g.my); return; }
+    if (e.code==='Space'){ e.preventDefault(); useFocus(); return; } }
+  if (k==='p' || k==='escape') togglePause();
+  if (k==='m') toggleMute();
+});
+function togglePause(force){ if (!['play','intro','clear'].includes(g.state)) return; g.paused = force==null ? !g.paused : force; if (g.paused) $('#pauseBattery').innerHTML = batteryHTML(null); $('#ovPause').hidden = !g.paused; $('#pauseBtn').textContent = g.paused ? 'Resume' : 'Pause'; }
+function toggleMute(){ muted = !muted; $('#muteBtn').textContent = 'Sound: '+(muted?'off':'on'); }
+$('#startBtn').onclick = () => { audioInit(); newRun(); startHour(0); };
+$('#resumeBtn').onclick = () => togglePause(false);
+$('#pauseBtn').onclick = () => togglePause();
+$('#muteBtn').onclick = toggleMute;
+$('#focusBtn').onclick = () => { audioInit(); useFocus(); };
+$('#skipBtn').onclick = () => { if (g.state==='play' || g.state==='intro'){ g.paused = false; $('#ovPause').hidden = true; $('#pauseBtn').textContent = 'Pause'; g.state = 'play'; clearField(); g.scrap += 12; g.earned += 12; hourCleared(); } };
+document.addEventListener('visibilitychange', () => { if (document.hidden) togglePause(true); });
+
+newRun(); buildChapters(); setNote('pitch');
+try { if (!T) throw new Error('The 3D library did not load. Check the connection and reload.'); R3 = init3D(); }
+catch (err){ $('#ovTitle').hidden = true; $('#errMsg').textContent = String(err.message||err); $('#ovErr').hidden = false; }
+new ResizeObserver(resize).observe(stage); resize();
+let last = performance.now();
+function frame(now){ const dt = Math.min(.05,(now-last)/1000); last = now; update(dt);
+  const sh = (g.shake>.3 && !reduceMotion) ? g.shake : 0; shX = rnd(-1,1)*sh; shY = rnd(-1,1)*sh;
+  if (R3) R3.draw(shX, shY); hud(); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+window.__missilo = {g, jump, fire, simImpact, launch, compose, get sats(){return sats;}, get cities(){return cities;}};
+})();
+</script>
